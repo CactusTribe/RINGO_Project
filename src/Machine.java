@@ -35,8 +35,9 @@ public class Machine{
 		this.udp_nextPort = 0;
 		this.muldif_port = muldif_port;
 
-		describeMe();
+		//describeMe();
 		//udp_listening();
+		//tcp_listening();
 	}
 
 	public void udp_listening(){
@@ -65,11 +66,28 @@ public class Machine{
 		}
 	}
 
+	public void tcp_listening(){
+		try{
+
+
+
+		}catch (Exception e){
+			e.printStackTrace();
+		}
+	}
+
 	private String getRandomIdent(){
 		Date date = new Date();
 		Timestamp time = new Timestamp(date.getTime());
 		int since1970 = time.hashCode();
 		return Integer.toString(since1970);
+	}
+
+	public String toString(){
+		String m = String.format("%s [%s | %s | %d | %d | %d | %d]",
+			ident, ip_multdif, next_ip, tcp_listenPort, udp_listenPort, udp_nextPort, muldif_port);
+
+		return m;
 	}
 
 	public void describeMe(){
@@ -82,5 +100,9 @@ public class Machine{
 		System.out.println(" -> udp_nextPort : " + this.udp_nextPort);
 		System.out.println(" -> muldif_port : " + this.muldif_port);
 		System.out.println("-----------------------------");
+	}
+
+	public String getIdent(){
+		return this.ident;
 	}
 }

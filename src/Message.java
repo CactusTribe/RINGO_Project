@@ -19,22 +19,7 @@ public class Message{
 	private short size_content = 0;
 	
 	public Message(){
-		this.prefix = PrefixMsg.WELC;
-		this.ip = "127.000.000.001";
-		this.ip_succ = "127.000.000.002";
-		this.ip_diff = "127.000.000.003";
-		this.port = 6001;
-		this.port_succ = 6002;
-		this.port_diff = 7000;
-		this.idm = 99999999;
-		this.id_trans = 99999999;
-		this.id_app = 99999999;
-		this.id = 99999999;
-		this.size_mess = 3;
-		this.size_nom = 4;
-		this.num_mess = 8;
-		this.no_mess = 2;
-		this.size_content = 56;
+	
 	}
 
 	public Message(String mess){
