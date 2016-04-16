@@ -2,9 +2,10 @@ import java.util.*;
 import java.net.*;
 import java.io.*;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 
 
-public class Machine{
+public class Machine implements Runnable{
 
 	private String ident;
 	private String ip_multdif;
@@ -13,6 +14,13 @@ public class Machine{
 	private int tcp_listenPort;
 	private int udp_nextPort;
 	private int muldif_port;
+
+	private LinkedList<String> logs = new LinkedList<String>();
+
+	private boolean running = true;
+	private Thread udp_listening = null;
+
+	private DatagramSocket dso = null;
 
 	public Machine(){
 		this.ident = getRandomIdent();
@@ -34,46 +42,45 @@ public class Machine{
 		this.udp_listenPort = udp_listenPort;
 		this.udp_nextPort = 0;
 		this.muldif_port = muldif_port;
-
-		//describeMe();
-		//udp_listening();
-		//tcp_listening();
-	}
-
-	public void udp_listening(){
 		try{
+			this.dso = new DatagramSocket(this.udp_listenPort);
+		}catch (Exception e){
+			e.printStackTrace();
+		}
 
-			byte[] data = new byte[512];
-			DatagramSocket dso = new DatagramSocket(this.udp_listenPort);
-			DatagramPacket paquet = new DatagramPacket(data, data.length);
 
-			System.out.println("Machine "+this.ident+" listen at "+ this.udp_listenPort+"..");
+		udp_listening = new Thread(new Runnable() {
+			public void run(){
+				while(true){
+					try{
+					
+						byte[] data = new byte[512];
+						DatagramPacket paquet = new DatagramPacket(data, data.length);
 
-			while(true){
-				dso.receive(paquet);
-				String st = new String(paquet.getData(), 0, paquet.getLength());
-				InetSocketAddress ia = (InetSocketAddress)paquet.getSocketAddress();
+						dso.receive(paquet);
+						String st = new String(paquet.getData(), 0, paquet.getLength());
+						InetSocketAddress ia = (InetSocketAddress)paquet.getSocketAddress();
 
-				if(this.udp_nextPort != 0){
-					String mess = ia.getHostName()+":"+this.udp_nextPort+" "+st;
-					paquet = new DatagramPacket(mess.getBytes(), mess.length(), ia);
-					dso.send(paquet);	
+						Date current_time = new Date();
+						String str_cur_time = (new SimpleDateFormat("HH:mm")).format(current_time);
+						logs.add(" > ("+str_cur_time+") "+paquet.getLength()+" bytes received by "+ident+" : ["+((st.length() > 30) ? st.substring(0,30)+".." : st)+"]");
+
+						if(udp_nextPort != 0){
+							String mess = ia.getHostName()+":"+udp_nextPort+" "+st;
+							paquet = new DatagramPacket(mess.getBytes(), mess.length(), ia);
+							dso.send(paquet);	
+						}
+
+					}catch (Exception e){
+						break;
+					}
 				}
 			}
-
-		}catch (Exception e){
-			e.printStackTrace();
-		}
+		});
 	}
 
-	public void tcp_listening(){
-		try{
-
-
-
-		}catch (Exception e){
-			e.printStackTrace();
-		}
+	public void run(){
+		udp_listening.start();
 	}
 
 	private String getRandomIdent(){
@@ -81,6 +88,10 @@ public class Machine{
 		Timestamp time = new Timestamp(date.getTime());
 		int since1970 = time.hashCode();
 		return Integer.toString(since1970);
+	}
+
+	public LinkedList<String> getLogs(){
+		return this.logs;
 	}
 
 	public String toString(){
@@ -104,5 +115,14 @@ public class Machine{
 
 	public String getIdent(){
 		return this.ident;
+	}
+
+	public boolean getState(){
+		return this.running;
+	}
+
+	public void stop(){
+		this.dso.close();
+		this.running = false;
 	}
 }
