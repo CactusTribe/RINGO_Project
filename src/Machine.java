@@ -1,6 +1,7 @@
 import java.util.*;
+import java.net.*;
+import java.io.*;
 import java.sql.Timestamp;
-import java.util.Date;
 
 
 public class Machine{
@@ -17,24 +18,51 @@ public class Machine{
 		this.ident = getRandomIdent();
 		this.ip_multdif = null;
 		this.next_ip = null;
-		this.udp_listenPort = 0;
 		this.tcp_listenPort = 0;
+		this.udp_listenPort = 0;
 		this.udp_nextPort = 0;
 		this.muldif_port = 0;
 
 		describeMe();
 	}
 
-	public Machine(String ip_multdif, int udp_listenPort, int tcp_listenPort, int muldif_port){
+	public Machine(String ip_multdif, int tcp_listenPort, int udp_listenPort, int muldif_port){
 		this.ident = getRandomIdent();
 		this.ip_multdif = ip_multdif;
 		this.next_ip = null;
-		this.udp_listenPort = udp_listenPort;
 		this.tcp_listenPort = tcp_listenPort;
+		this.udp_listenPort = udp_listenPort;
 		this.udp_nextPort = 0;
 		this.muldif_port = muldif_port;
 
 		describeMe();
+		//udp_listening();
+	}
+
+	public void udp_listening(){
+		try{
+
+			byte[] data = new byte[512];
+			DatagramSocket dso = new DatagramSocket(this.udp_listenPort);
+			DatagramPacket paquet = new DatagramPacket(data, data.length);
+
+			System.out.println("Machine "+this.ident+" listen at "+ this.udp_listenPort+"..");
+
+			while(true){
+				dso.receive(paquet);
+				String st = new String(paquet.getData(), 0, paquet.getLength());
+				InetSocketAddress ia = (InetSocketAddress)paquet.getSocketAddress();
+
+				if(this.udp_nextPort != 0){
+					String mess = ia.getHostName()+":"+this.udp_nextPort+" "+st;
+					paquet = new DatagramPacket(mess.getBytes(), mess.length(), ia);
+					dso.send(paquet);	
+				}
+			}
+
+		}catch (Exception e){
+			e.printStackTrace();
+		}
 	}
 
 	private String getRandomIdent(){
@@ -49,8 +77,8 @@ public class Machine{
 		System.out.println(" -> ident : " + this.ident);
 		System.out.println(" -> ip_multdif : " + this.ip_multdif);
 		System.out.println(" -> next_ip : " + this.next_ip);
-		System.out.println(" -> udp_listenPort : " + this.udp_listenPort);
 		System.out.println(" -> tcp_listenPort : " + this.tcp_listenPort);
+		System.out.println(" -> udp_listenPort : " + this.udp_listenPort);
 		System.out.println(" -> udp_nextPort : " + this.udp_nextPort);
 		System.out.println(" -> muldif_port : " + this.muldif_port);
 		System.out.println("-----------------------------");
