@@ -18,18 +18,18 @@ public class RINGO_Project{
 		System.out.println("------------------------------------------\n");
 		System.out.println("              <*> New RING <*>            \n");
 		
+		/*
+		Message mess = new Message("WELC 127.000.000.001 127.000.000.002 127.000.000.003 6001 6002 7000 00000000 00000000 00000000 00000000 003 04 00000008 00000002 056\n");
+		mess.print(); // Debug
+		System.out.println(mess); // toString()
+		*/
+
 		while(true){
 		  display_prompt();
 		  read_command();
 		  tokenize_command();
 		  execute_command();
 		}
-		
-		/*
-		Message mess = new Message("WELC127.000.000.001127.000.000.002127.000.000.00360016002700000000000000000000000000000000000003040000000800000002056");
-		mess.print(); // Debug
-		System.out.println(mess); // toString()
-		*/
 	}
 
   /**
@@ -67,25 +67,13 @@ public class RINGO_Project{
 			System.exit(0);
     }  
     else if(argv.get(0).equals("a")){
-      addNewMachine();
+      newMachine();
     }
     else if(argv.get(0).equals("r")){
-      
+    	removeMachine();
     }
     else if(argv.get(0).equals("l")){
-    	if(argv.size() <= 1)
-    		System.out.println("Usage: l <num_machine>");
-
-    	else{
-	      System.out.print(" -> Machine number : "+argv.get(1));
-				try { 
-					int num_machine = Integer.parseInt(argv.get(1));
-					printLogs(num_machine);
-				}
-				catch (Exception e){
-				 System.out.println("Usage: l <num_machine>");
-				}
-			}
+    	printLogs();
     }
     else if(argv.get(0).equals("w")){
       writeMessage();
@@ -99,7 +87,7 @@ public class RINGO_Project{
 			System.exit(0);
     }
     else{
-        System.out.format("La commande %s n'existe pas.\n", argl);
+        System.out.format("Command %s doesn't exist.\n", argl);
     }
   }
 
@@ -115,21 +103,33 @@ public class RINGO_Project{
 		System.out.println("	*-------------------------------*\n");
 	}
 
-	public static void printLogs(int num_machine){
-		if(num_machine < machines.size()){
-			System.out.println("");
-			System.out.println("	*-----------* Logs *-----------*");
-			LinkedList<String> logs = machines.get(num_machine).getLogs();
-			for(int i=0; i<logs.size(); i++)
-				System.out.println("	|"+logs.get(logs.size()-1-i));
-			System.out.println("	*-------------------------------*\n");
-		}
-		else{
-			System.out.println(" Error : machine doesn't exist.");
-		}
+	public static void printLogs(){
+	  if(argv.size() <= 1)
+  		System.out.println("Usage: l <num_machine>");
+  	else{
+			try { 
+
+				int num_machine = Integer.parseInt(argv.get(1));
+				if(num_machine < machines.size()){
+					System.out.println("");
+					System.out.println("	*-----------* Logs *-----------*");
+					LinkedList<String> logs = machines.get(num_machine).getLogs();
+					for(int i=0; i<logs.size(); i++)
+						System.out.println("	|"+logs.get(logs.size()-1-i));
+					System.out.println("	*-------------------------------*\n");
+				}
+				else{
+					System.out.println("Error : machine doesn't exist.");
+				}
+
+			}
+			catch (Exception e){
+			 System.out.println("Usage: l <num_machine>");
+			}
+		}	
 	}
 
-	public static void addNewMachine(){
+	public static void newMachine(){
 		String ip = "";
 		int tcp_port = 0;
 		int udp_port = 0;
@@ -161,6 +161,29 @@ public class RINGO_Project{
 		(new Thread(m)).start();
 		System.out.println(" -> New machine "+m.getIdent()+" run at "+ip);
 		printStats();
+	}
+
+	public static void removeMachine(){
+    if(argv.size() <= 1)
+  		System.out.println("Usage: r <num_machine>");
+
+  	else{
+      System.out.println(" -> Remove machine number : "+argv.get(1));
+			try {
+
+				int num_machine = Integer.parseInt(argv.get(1));
+				if(num_machine < machines.size()){
+					machines.get(num_machine).stop();
+					machines.remove(num_machine);
+				}
+				else
+					System.out.println("Error : machine doesn't exist.");
+
+			}
+			catch (Exception e){
+			 System.out.println("Usage: r <num_machine>");
+			}
+		}
 	}
 
 	public static void writeMessage(){

@@ -1,3 +1,5 @@
+import java.util.*;
+
 public class Message{
 
 	private PrefixMsg prefix = null;
@@ -19,32 +21,34 @@ public class Message{
 	private short size_content = 0;
 	
 	public Message(){
-	
+
 	}
 
 	public Message(String mess){
 		if(mess.length() <= 512){
-			this.prefix = PrefixMsg.getPrefix(mess.substring(0,4));
-			this.ip = mess.substring(4,19);
-			this.ip_succ = mess.substring(19,34);
-			this.ip_diff = mess.substring(34,49);
-			this.port = (short)Integer.parseInt(mess.substring(49,53));
-			this.port_succ = (short)Integer.parseInt(mess.substring(53,57));
-			this.port_diff = (short)Integer.parseInt(mess.substring(57,61));
-			this.idm = Integer.parseInt(mess.substring(61,69));
-			this.id_trans = Integer.parseInt(mess.substring(69,77));
-			this.id_app = Integer.parseInt(mess.substring(77,85));
-			this.id = Integer.parseInt(mess.substring(85,93));
-			this.size_mess = (short)Integer.parseInt(mess.substring(93,96));
-			this.size_nom = (short)Integer.parseInt(mess.substring(96,98));
-			this.num_mess = Integer.parseInt(mess.substring(98,106));
-			this.no_mess = Integer.parseInt(mess.substring(106,114));
-			this.size_content = (short)Integer.parseInt(mess.substring(114,117));
+			ArrayList<String> argv = new ArrayList<String>(Arrays.asList(mess.split("\\s+")));
+
+			this.prefix = PrefixMsg.getPrefix(argv.get(0));
+			this.ip = argv.get(1);
+			this.ip_succ = argv.get(2);
+			this.ip_diff = argv.get(3);
+			this.port = (short)Integer.parseInt(argv.get(4));
+			this.port_succ = (short)Integer.parseInt(argv.get(5));
+			this.port_diff = (short)Integer.parseInt(argv.get(6));
+			this.idm = Integer.parseInt(argv.get(7));
+			this.id_trans = Integer.parseInt(argv.get(8));
+			this.id_app = Integer.parseInt(argv.get(9));
+			this.id = Integer.parseInt(argv.get(10));
+			this.size_mess = (short)Integer.parseInt(argv.get(11));
+			this.size_nom = (short)Integer.parseInt(argv.get(12));
+			this.num_mess = Integer.parseInt(argv.get(13));
+			this.no_mess = Integer.parseInt(argv.get(14));
+			this.size_content = (short)Integer.parseInt(argv.get(15));
 		}
 	}
 
 	public String toString(){
-		String mess = String.format("%s%s%s%s%04d%04d%04d%08d%08d%08d%08d%03d%02d%08d%08d%03d",
+		String mess = String.format("%s %s %s %s %04d %04d %04d %08d %08d %08d %08d %03d %02d %08d %08d %03d\n",
 			prefix,ip,ip_succ,ip_diff,port,port_succ,port_diff,
 			idm,id_trans,id_app,id,size_mess,size_nom,num_mess,
 			no_mess,size_content);

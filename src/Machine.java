@@ -63,10 +63,10 @@ public class Machine implements Runnable{
 
 						Date current_time = new Date();
 						String str_cur_time = (new SimpleDateFormat("HH:mm")).format(current_time);
-						logs.add(" > ("+str_cur_time+") "+paquet.getLength()+" bytes received by "+ident+" : ["+((st.length() > 30) ? st.substring(0,30)+".." : st)+"]");
+						logs.add(" > ("+str_cur_time+") UDP "+paquet.getLength()+" bytes received from "+ia.getHostName()+":"+ia.getPort()+" : ["+((st.length() > 30) ? st.substring(0,30)+".." : st)+"]");
 
 						if(udp_nextPort != 0){
-							String mess = ia.getHostName()+":"+udp_nextPort+" "+st;
+							String mess = ia.getHostName()+":"+ia.getPort()+" "+st;
 							paquet = new DatagramPacket(mess.getBytes(), mess.length(), ia);
 							dso.send(paquet);	
 						}
