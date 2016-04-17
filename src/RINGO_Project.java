@@ -4,9 +4,12 @@ import java.io.*;
 
 public class RINGO_Project{
 
-	public static LinkedList<Machine> machines = new LinkedList<Machine>();
 	public static Scanner input = new Scanner(System.in);
-	public static DatagramSocket dso = null;
+	public static String argl; // Ligne de commande brute
+  public static ArrayList<String> argv = new ArrayList<String>(); // Liste des arguments
+  public static LinkedList<Machine> machines = new LinkedList<Machine>();
+
+  public static DatagramSocket dso = null;
 
 	public static void main(String[] args){
 
@@ -15,40 +18,11 @@ public class RINGO_Project{
 		System.out.println("------------------------------------------\n");
 		System.out.println("              <*> New RING <*>            \n");
 		
-		String buff = "";
-
-		while(exit != true){
-			System.out.print("[a]Add [r]Remove [l]Logs [w]Write [s]Stats [q]Quit : ");
-			buff = input.nextLine();
-			switch(buff){
-				case "a":
-					addNewMachine();
-				break;
-				case "r":
-				break;
-				case "l":
-					System.out.print(" -> Machine number ? : ");
-					try { 
-						int num_machine = Integer.parseInt(input.nextLine());
-						printLogs(num_machine);
-					}
-					catch (Exception e){
-					 System.out.println(" Error : <int>");
-					}
-				break;
-				case "w":
-					writeMessage();
-				break;
-				case "s":
-					printStats();
-				break;
-				case "q":
-					stopMachines();
-					exit = true;
-				break;
-				default:
-				break;
-			}
+		while(true){
+		  display_prompt();
+		  read_command();
+		  tokenize_command();
+		  execute_command();
 		}
 		
 		/*
@@ -57,6 +31,77 @@ public class RINGO_Project{
 		System.out.println(mess); // toString()
 		*/
 	}
+
+  /**
+   * Affiche une nouvelle ligne pour la prochaine commande
+   */
+  public static void display_prompt(){
+      System.out.print("[a]Add [r]Remove [l]Logs [w]Write [s]Stats [q]Quit : ");
+  }
+  
+  /**
+   * Stock la commande complete dans argl
+   */
+  public static void read_command(){
+      try{
+          argl = input.nextLine();   
+      }catch (NoSuchElementException e){ // Exception levé lors de Ctrl+D
+          argl = "exit";
+          System.out.println("Bye.");
+      }
+  }
+  
+  /**
+   * Découpe la commande en arguments distincts
+   */
+  public static void tokenize_command(){
+      argv = new ArrayList<String>(Arrays.asList(argl.split("\\s+")));
+  }
+
+  /**
+   * Execute la commande contenue dans argl
+   */
+  public static void execute_command(){
+    if(argv.get(0).equals("exit")){
+    	stopMachines();
+			System.exit(0);
+    }  
+    else if(argv.get(0).equals("a")){
+      addNewMachine();
+    }
+    else if(argv.get(0).equals("r")){
+      
+    }
+    else if(argv.get(0).equals("l")){
+    	if(argv.size() <= 1)
+    		System.out.println("Usage: l <num_machine>");
+
+    	else{
+	      System.out.print(" -> Machine number : "+argv.get(1));
+				try { 
+					int num_machine = Integer.parseInt(argv.get(1));
+					printLogs(num_machine);
+				}
+				catch (Exception e){
+				 System.out.println("Usage: l <num_machine>");
+				}
+			}
+    }
+    else if(argv.get(0).equals("w")){
+      writeMessage();
+    }
+    else if(argv.get(0).equals("s")){
+      printStats();
+    }
+    else if(argv.get(0).equals("q")){
+      stopMachines();
+      System.out.println("Bye.");
+			System.exit(0);
+    }
+    else{
+        System.out.format("La commande %s n'existe pas.\n", argl);
+    }
+  }
 
 	public static void printStats(){
 		System.out.println("");

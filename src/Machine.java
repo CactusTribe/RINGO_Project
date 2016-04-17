@@ -125,4 +125,27 @@ public class Machine implements Runnable{
 		this.dso.close();
 		this.running = false;
 	}
+
+
+	public static void main(String[] args){
+		if(args.length < 4){
+			System.out.println("Usage: Machine <ip_multdif> <tcp_port> <udp_port> <multdif_port>");
+			System.exit(1);
+		}
+
+		try{
+
+			String ip_multdif = args[0];
+			short tcp_port = (short)Integer.parseInt(args[1]);
+			short udp_port = (short)Integer.parseInt(args[2]);
+			short multdif_port = (short)Integer.parseInt(args[3]);
+
+			Machine m = new Machine(ip_multdif, tcp_port, udp_port, multdif_port);
+			Thread t_machine = new Thread(m);
+			t_machine.start();
+
+		}catch (Exception e){
+			System.out.println("Usage: Machine <ip_multdif> <tcp_port> <udp_port> <multdif_port>");
+		}
+	}
 }
