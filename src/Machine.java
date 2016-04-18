@@ -50,7 +50,7 @@ public class Machine implements Runnable{
 		describeMe();
 	}
 
-	public Machine(String ip_multdif, short tcp_listenPort, short udp_listenPort, short multdif_port){
+	public Machine(String ip_multdif, short tcp_listenPort, short udp_listenPort, short multdif_port) throws Exception{
 		this.ident = getRandomIdent();
 		this.ip_multdif = ip_multdif;
 		this.tcp_listenPort = tcp_listenPort;
@@ -59,16 +59,10 @@ public class Machine implements Runnable{
 		this.multdif_port = multdif_port;
 		this.last_msg = new Hashtable();
 
-		try{
-
-			this.dso = new DatagramSocket(this.udp_listenPort);
-			this.tcp_socket = new ServerSocket(tcp_listenPort);
-			this.ip = InetAddress.getLocalHost().getHostAddress();
-			this.next_ip = ip;
-
-		}catch (Exception e){
-			e.printStackTrace();
-		}
+		this.dso = new DatagramSocket(this.udp_listenPort);
+		this.tcp_socket = new ServerSocket(tcp_listenPort);
+		this.ip = InetAddress.getLocalHost().getHostAddress();
+		this.next_ip = ip;
 
 		udp_listening = new Thread(new Runnable() {
 			public void run(){
@@ -187,7 +181,7 @@ public class Machine implements Runnable{
 			toLogs(msg.toString(), ProtocoleToken.TCP, ProtocoleToken.RECEIVED,
 				ia.getHostName(), socket.getPort());
 
-			System.out.println(msg);
+			System.out.println(this.ident +" read "+ msg);
 
 			if(msg.getPrefix() == PrefixMsg.WELC){
 				this.udp_nextPort = msg.getPort();
@@ -198,7 +192,6 @@ public class Machine implements Runnable{
 				rep.setIp(ip);
 				rep.setPort((short)udp_listenPort);
 
-				System.out.println(rep);
 				pw.print(rep.toString());
 				pw.flush();
 			}
@@ -209,7 +202,6 @@ public class Machine implements Runnable{
 				Message rep = new Message();
 				rep.setPrefix(PrefixMsg.ACKC);
 
-				System.out.println(rep);
 				pw.print(rep.toString());
 				pw.flush();
 				break;
@@ -230,7 +222,7 @@ public class Machine implements Runnable{
 		else if (direction == ProtocoleToken.SENT)
 			st_direct = "sent to";
 
-		logs.add(String.format(" > (%s) %s %d bytes %s %s:%04d : \n   	| - [ %s ]\n   	| ", 
+		logs.add(String.format(" > (%s) %s %d bytes %s %s:%04d : \n  | - [ %s ]\n  | ", 
 			str_cur_time, mode ,msg.length(), st_direct, ip, port,
 			 ((msg.length() > 100) ? msg.substring(0,100)+".." : msg.substring(0,msg.length()-1))));
 
@@ -248,7 +240,7 @@ public class Machine implements Runnable{
 	}
 
 	public String toString(){
-		String m = String.format("%s [%s | %s | %s | %d | %d | %d | %d]",
+		String m = String.format("%s [ %s | %s | %s | %d | %d | %d | %d ]",
 			ident, ip, ip_multdif, next_ip, tcp_listenPort, udp_listenPort, udp_nextPort, multdif_port);
 
 		return m;

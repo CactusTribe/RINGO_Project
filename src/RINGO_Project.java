@@ -15,9 +15,12 @@ public class RINGO_Project{
 
 		boolean exit = false; 
 
-		System.out.println("------------------------------------------\n");
-		System.out.println("              <*> New RING <*>            \n");
-		
+		System.out.println("<*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*>");
+		System.out.println("#                                                    #");
+		System.out.println("#               <*> RINGO Project <*>                #");
+		System.out.println("#                                                    #");
+		System.out.println("# Authors: Lefranc Joaquim, Skoda Jérôme             #");
+		System.out.println("<*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*>\n");
 		/*
 		Message mess = new Message("WELC 192.168.001.025 6000 127.000.000.001 7000\n");
 		mess.print(); // Debug
@@ -98,15 +101,14 @@ public class RINGO_Project{
   }
 
 	public static void printStats(){
-		System.out.println("");
-		System.out.println("	*-----------* Stats *-----------*");
-		System.out.println("	|  N° - (state) IDENT [    HOST    |  IP_MULT  |    NEXT_IP   | TCP | UDP | NXT_UDP | MULT]");
-		System.out.println("	|  --------------------------------------------------------------------");
+		System.out.println("\n");
+		System.out.println("  |  N° - (state) IDENT [    HOST    |  IP_MULT  |    NEXT_IP   | TCP | UDP | NXT_UDP | MULT ]");
+		System.out.println("  |  --------------------------------------------------------------------");
 		for(int i=0; i<machines.size(); i++)
-			System.out.println("	|  "+i+" - ("+((machines.get(i).getState()) ? "R" : "P") +") "+machines.get(i));
-		System.out.println("	|");
-		System.out.println("	| Nb machines : "+machines.size());
-		System.out.println("	*-------------------------------*\n");
+			System.out.println("  |  "+i+" - ("+((machines.get(i).getState()) ? "R" : "P") +") "+machines.get(i));
+		System.out.println("  |");
+		System.out.println("  | Nb machines : "+machines.size());
+		System.out.println("\n");
 	}
 
 	public static void printLogs(){
@@ -118,11 +120,12 @@ public class RINGO_Project{
 				int num_machine = Integer.parseInt(argv.get(1));
 				if(num_machine < machines.size()){
 					System.out.println("");
-					System.out.println("	*-----------* Logs *-----------*");
+					System.out.println("  Machine "+num_machine);
+					System.out.println("  *------------------*");
 					LinkedList<String> logs = machines.get(num_machine).getLogs();
 					for(int i=0; i<logs.size(); i++)
-						System.out.println("	|"+logs.get(logs.size()-1-i));
-					System.out.println("	*-------------------------------*\n");
+						System.out.println("  |"+logs.get(logs.size()-1-i));
+					System.out.println("\n");
 				}
 				else{
 					System.out.println("Error : machine doesn't exist.");
@@ -142,30 +145,35 @@ public class RINGO_Project{
 		short multdif_port = 0;
 
 		System.out.println("");
-		System.out.println("	*-----------* Add machine *-----------*");
+		System.out.println("  *-----------* Add machine *-----------*");
 
-		System.out.print("	| IP : ");
+		System.out.print("  | IP : ");
 		ip = input.nextLine();
 		if(ip.equals("")) ip = "127.0.0.1";
 
-		System.out.print("	| TCP port : ");
+		System.out.print("  | TCP port : ");
 		try { tcp_port = (short)Integer.parseInt(input.nextLine());} 
 		catch (Exception e){ tcp_port = 5900;};
 
-		System.out.print("	| UDP port : ");
+		System.out.print("  | UDP port : ");
 		try { udp_port = (short)Integer.parseInt(input.nextLine());} 
 		catch (Exception e){ udp_port = 6000;};
 
-		System.out.print("	| Multdif port : ");
+		System.out.print("  | Multdif port : ");
 		try { multdif_port = (short)Integer.parseInt(input.nextLine());} 
 		catch (Exception e){ multdif_port = 7000;};
 
-		System.out.println("	*-------------------------------------*");
+		System.out.println("  *-------------------------------------*");
 
-		Machine m = new Machine(ip, tcp_port, udp_port, multdif_port);
-		machines.add(m);
-		(new Thread(m)).start();
-		System.out.println(" -> New machine "+m.getIdent()+" run at "+ip);
+		try{
+			Machine m = new Machine(ip, tcp_port, udp_port, multdif_port);
+			machines.add(m);
+			(new Thread(m)).start();
+			System.out.println(" -> New machine "+m.getIdent()+" run at "+ip);
+		}catch (Exception e){
+			System.out.println(e);
+		}
+
 		printStats();
 	}
 
@@ -202,6 +210,7 @@ public class RINGO_Project{
 
 				if(m1 < machines.size() && m2 < machines.size()){
 
+					System.out.println("");
 					machines.get(m1).tcp_connectTo(machines.get(m2).getIp(), machines.get(m2).getPortTCP());
 
 					System.out.println(String.format(" -> Connect [%d] to [%d] : ",Integer.parseInt(argv.get(1)), Integer.parseInt(argv.get(2))));
@@ -242,13 +251,13 @@ public class RINGO_Project{
 		String mess = "";
 
 		System.out.println("");
-		System.out.println("	*-----------* Write message *-----------*");
-		System.out.print("	| UDP port : ");
+		System.out.println("  *-----------* Write message *-----------*");
+		System.out.print("  | UDP port : ");
 		udp_port = input.nextInt();
 		input.nextLine();
-		System.out.print("	| Message : ");
+		System.out.print("  | Message : ");
 		mess = input.nextLine()+"\n";
-		System.out.println("	*---------------------------------------*");
+		System.out.println("  *---------------------------------------*");
 		System.out.println("\n -> Message sent to "+udp_port+".\n");
 
 		try{
