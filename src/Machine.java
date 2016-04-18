@@ -14,17 +14,21 @@ public class Machine implements Runnable{
 	private short udp_listenPort;
 	private short tcp_listenPort;
 	private short udp_nextPort;
-	private short muldif_port;
+	private short multdif_port;
 
 	private ServerSocket tcp_socket; 
 	
 	private LinkedList<String> logs = new LinkedList<String>();
 
 	private boolean running = true;
-	private Thread udp_listening = null;
-	private Thread tcp_listening = null;
+	private Thread udp_listening;
+	private Thread tcp_listening;
 
-	private DatagramSocket dso = null;
+	private DatagramSocket dso;
+	private PrintWriter pw;
+	private BufferedReader br;
+
+	private Hashtable last_msg;
 
 	public Machine(){
 		this.ident = getRandomIdent();
@@ -32,7 +36,8 @@ public class Machine implements Runnable{
 		this.tcp_listenPort = 0;
 		this.udp_listenPort = 0;
 		this.udp_nextPort = 0;
-		this.muldif_port = 0;
+		this.multdif_port = 0;
+		this.last_msg = new Hashtable();
 
 		try{
 			this.tcp_socket = new ServerSocket(tcp_listenPort);
@@ -45,14 +50,14 @@ public class Machine implements Runnable{
 		describeMe();
 	}
 
-	public Machine(String ip_multdif, short tcp_listenPort, short udp_listenPort, short muldif_port){
+	public Machine(String ip_multdif, short tcp_listenPort, short udp_listenPort, short multdif_port){
 		this.ident = getRandomIdent();
 		this.ip_multdif = ip_multdif;
 		this.tcp_listenPort = tcp_listenPort;
 		this.udp_listenPort = udp_listenPort;
 		this.udp_nextPort = udp_listenPort;
-		this.muldif_port = muldif_port;
-
+		this.multdif_port = multdif_port;
+		this.last_msg = new Hashtable();
 
 		try{
 
@@ -69,7 +74,7 @@ public class Machine implements Runnable{
 			public void run(){
 				while(true){
 					try{
-					
+
 						byte[] data = new byte[512];
 						DatagramPacket paquet = new DatagramPacket(data, data.length);
 
@@ -77,16 +82,19 @@ public class Machine implements Runnable{
 						String st = new String(paquet.getData(), 0, paquet.getLength());
 						InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
 
-						Date current_time = new Date();
-						String str_cur_time = (new SimpleDateFormat("HH:mm")).format(current_time);
+						toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
+							isa.getHostName(), isa.getPort());
 
-						logs.add(String.format(" > (%s) UDP %d bytes received from %s:%04d : \n   	| - [ %s ]\n   	| ", 
-							str_cur_time, paquet.getLength(), isa.getHostName(), isa.getPort(), ((st.length() > 100) ? st.substring(0,100)+".." : st.substring(0, st.length()-1))));
+						Message mess = new Message(st);
 
-						if(udp_nextPort != 0){
-							String mess = st;
-							paquet = new DatagramPacket(mess.getBytes(), mess.length(), isa);
+						if(last_msg.containsKey(mess.getIdm()) == false){
+
+							isa = new InetSocketAddress(next_ip, udp_nextPort);
+							paquet = new DatagramPacket(mess.toString().getBytes(), mess.toString().length(), isa);
 							dso.send(paquet);	
+						}
+						else{
+							last_msg.remove(mess.getIdm());
 						}
 
 					}catch (Exception e){
@@ -104,33 +112,20 @@ public class Machine implements Runnable{
 
 						Socket socket = tcp_socket.accept();
 						InetAddress ia = socket.getInetAddress();
-						BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-						PrintWriter pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+						pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 
 						Message mess = new Message();
 						mess.setPrefix(PrefixMsg.WELC);
 						mess.setIp(ip);
 						mess.setIp_diff(ip_multdif);
 						mess.setPort((short)udp_listenPort);
-						mess.setPort_diff((short)muldif_port);
-
-						Date current_time = new Date();
-						String str_cur_time = (new SimpleDateFormat("HH:mm")).format(current_time);
-
-						logs.add(String.format(" > (%s) TCP %d bytes sent to %s:%04d : \n   	| - [ %s ]\n   	| ", 
-							str_cur_time, mess.toString().length(), ia.getHostName(), socket.getPort(),
-							 ((mess.toString().length() > 100) ? mess.toString().substring(0,100)+".." : mess.toString().substring(0,mess.toString().length()-1))));
+						mess.setPort_diff((short)multdif_port);
 
 						pw.print(mess.toString());
 						pw.flush();
 
-						/*
-						String mess = br.readLine();
-						System.out.println(mess);
-
-						br.close();
-						*/
-
+						readMessages(socket);
+					
 						pw.close();
 						socket.close();
 
@@ -150,36 +145,95 @@ public class Machine implements Runnable{
 
 	public void tcp_connectTo(String ip, short port){
 		try{
+
 			Socket socket = new Socket(ip, port);
+			
+			readMessages(socket);
 
-			InetAddress ia = socket.getInetAddress();
-			BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			PrintWriter pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-
-			String st_mess = br.readLine();
-			Message mess_recu = new Message(st_mess);
-
-			Date current_time = new Date();
-			String str_cur_time = (new SimpleDateFormat("HH:mm")).format(current_time);
-
-			logs.add(String.format(" > (%s) TCP %d bytes received from %s:%04d : \n   	| - [ %s ]\n   	| ", 
-				str_cur_time, mess_recu.toString().length(), ia.getHostName(), socket.getPort(),
-				 ((mess_recu.toString().length() > 100) ? mess_recu.toString().substring(0,100)+".." : mess_recu.toString().substring(0,mess_recu.toString().length()-1))));
-
-			System.out.println(mess_recu);
-
-			/*
-			pw.print("Bonjour serveur !\n");
-			pw.flush();
-			*/
-
-			pw.close();
-			br.close();
 			socket.close();
 
 		}catch (Exception e){
 			System.out.println(e);
 		}
+	}
+
+	public void sendTest() throws IOException{
+		Message test = new Message();
+		test.setPrefix(PrefixMsg.TEST);
+		test.setIdm((int) (new Date().getTime()/1000));
+		test.setIp_diff(ip_multdif);
+		test.setPort_diff(multdif_port);
+
+		System.out.println(test);
+
+		last_msg.put(test.getIdm(), test.toString());
+
+		InetSocketAddress isa = new InetSocketAddress(next_ip, udp_nextPort);
+		DatagramPacket paquet = new DatagramPacket(test.toString().getBytes(), test.toString().length(), isa);
+		dso.send(paquet);	
+	}
+
+	public void readMessages(Socket socket) throws IOException{
+
+		InetAddress ia = socket.getInetAddress();
+		br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+
+		while(true){
+
+			String st_mess = br.readLine();
+			Message msg = new Message(st_mess);
+
+			toLogs(msg.toString(), ProtocoleToken.TCP, ProtocoleToken.RECEIVED,
+				ia.getHostName(), socket.getPort());
+
+			System.out.println(msg);
+
+			if(msg.getPrefix() == PrefixMsg.WELC){
+				this.udp_nextPort = msg.getPort();
+				this.next_ip = msg.getIp();
+
+				Message rep = new Message();
+				rep.setPrefix(PrefixMsg.NEWC);
+				rep.setIp(ip);
+				rep.setPort((short)udp_listenPort);
+
+				System.out.println(rep);
+				pw.print(rep.toString());
+				pw.flush();
+			}
+			else if(msg.getPrefix() == PrefixMsg.NEWC){
+				this.udp_nextPort = msg.getPort();
+				this.next_ip = msg.getIp();
+
+				Message rep = new Message();
+				rep.setPrefix(PrefixMsg.ACKC);
+
+				System.out.println(rep);
+				pw.print(rep.toString());
+				pw.flush();
+				break;
+			}
+		}
+
+		pw.close();
+		br.close();
+	}
+
+	public void toLogs(String msg, ProtocoleToken mode, ProtocoleToken direction ,String ip, int port){
+		Date current_time = new Date();
+		String str_cur_time = (new SimpleDateFormat("HH:mm")).format(current_time);
+
+		String st_direct = "";
+		if(direction == ProtocoleToken.RECEIVED)
+			st_direct = "received from";
+		else if (direction == ProtocoleToken.SENT)
+			st_direct = "sent to";
+
+		logs.add(String.format(" > (%s) %s %d bytes %s %s:%04d : \n   	| - [ %s ]\n   	| ", 
+			str_cur_time, mode ,msg.length(), st_direct, ip, port,
+			 ((msg.length() > 100) ? msg.substring(0,100)+".." : msg.substring(0,msg.length()-1))));
+
 	}
 
 	private String getRandomIdent(){
@@ -195,7 +249,7 @@ public class Machine implements Runnable{
 
 	public String toString(){
 		String m = String.format("%s [%s | %s | %s | %d | %d | %d | %d]",
-			ident, ip, ip_multdif, next_ip, tcp_listenPort, udp_listenPort, udp_nextPort, muldif_port);
+			ident, ip, ip_multdif, next_ip, tcp_listenPort, udp_listenPort, udp_nextPort, multdif_port);
 
 		return m;
 	}
@@ -208,7 +262,7 @@ public class Machine implements Runnable{
 		System.out.println(" -> tcp_listenPort : " + this.tcp_listenPort);
 		System.out.println(" -> udp_listenPort : " + this.udp_listenPort);
 		System.out.println(" -> udp_nextPort : " + this.udp_nextPort);
-		System.out.println(" -> muldif_port : " + this.muldif_port);
+		System.out.println(" -> multdif_port : " + this.multdif_port);
 		System.out.println("-----------------------------");
 	}
 

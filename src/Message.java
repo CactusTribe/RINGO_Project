@@ -48,6 +48,11 @@ public class Message{
 				this.id_app = Integer.parseInt(argv.get(2));
 				this.message_app = argv.get(3);
 			}
+			else if(prefix == PrefixMsg.TEST){
+				this.idm = Integer.parseInt(argv.get(1));
+				this.ip_diff = argv.get(2);
+				this.port_diff = (short)Integer.parseInt(argv.get(3));
+			}
 		}
 	}
 
@@ -69,6 +74,10 @@ public class Message{
 		else if(prefix == PrefixMsg.APPL){
 			mess = String.format("%s %08d %08d %s\n",
 				prefix,idm,id_app,message_app);
+		}
+		else if(prefix == PrefixMsg.TEST){
+			mess = String.format("%s %08d %s %04d\n",
+				prefix,idm,ip_diff,port_diff);
 		}
 
 		return mess;
@@ -117,6 +126,33 @@ public class Message{
 	}
 	public void setPort_diff(short port_diff){
 		this.port_diff = port_diff;
+	}
+	public void setIdm(int id){
+		this.idm = id;
+	}
+
+	public PrefixMsg getPrefix(){
+		return this.prefix;
+	}
+
+	public String getIp(){
+		return this.ip;
+	}
+
+	public int getIdm(){
+		return this.idm;
+	}
+
+	public String getIp_Succ(){
+		return this.ip_succ;
+	}
+
+	public short getPort(){
+		return this.port;
+	}
+
+	public short getPort_succ(){
+		return this.port_succ;
 	}
 }
 

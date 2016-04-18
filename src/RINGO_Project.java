@@ -36,7 +36,7 @@ public class RINGO_Project{
    * Affiche une nouvelle ligne pour la prochaine commande
    */
   public static void display_prompt(){
-      System.out.print("[a]Add [r]Remove [c]Connect [l]Logs [w]Write [s]Stats [q]Quit : ");
+      System.out.print("[a]Add [r]Remove [c]Connect [l]Logs [w]Write [t]Test [s]Stats [q]Quit : ");
   }
   
   /**
@@ -81,6 +81,9 @@ public class RINGO_Project{
     else if(argv.get(0).equals("w")){
       writeMessage();
     }
+    else if(argv.get(0).equals("t")){
+      testRing();
+    }
     else if(argv.get(0).equals("s")){
       printStats();
     }
@@ -97,7 +100,7 @@ public class RINGO_Project{
 	public static void printStats(){
 		System.out.println("");
 		System.out.println("	*-----------* Stats *-----------*");
-		System.out.println("	|  N° - (state) IDENT [     HOST    | IP_MULT | NEXT_IP | TCP | UDP | NEXT_UDP | MULT]");
+		System.out.println("	|  N° - (state) IDENT [    HOST    |  IP_MULT  |    NEXT_IP   | TCP | UDP | NXT_UDP | MULT]");
 		System.out.println("	|  --------------------------------------------------------------------");
 		for(int i=0; i<machines.size(); i++)
 			System.out.println("	|  "+i+" - ("+((machines.get(i).getState()) ? "R" : "P") +") "+machines.get(i));
@@ -213,6 +216,27 @@ public class RINGO_Project{
 		}
 	}
 
+	public static void testRing(){
+		if(argv.size() <= 1)
+			System.out.println("Usage: t <machine> (Send TEST into the ring)");
+		else{
+			try{
+				int m1 = Integer.parseInt(argv.get(1));
+
+				if(m1 < machines.size()){
+					machines.get(m1).sendTest();
+					System.out.println(String.format(" -> TEST sent by [%d]", m1));
+				}
+				else
+					System.out.println("Error : machine doesn't exist.");
+
+				
+			}catch (Exception e){
+				System.out.println("Usage: t <machine> (Send TEST into the ring)");
+			}
+		}	
+	}
+
 	public static void writeMessage(){
 		int udp_port = 0;
 		String mess = "";
@@ -223,7 +247,7 @@ public class RINGO_Project{
 		udp_port = input.nextInt();
 		input.nextLine();
 		System.out.print("	| Message : ");
-		mess = input.nextLine();
+		mess = input.nextLine()+"\n";
 		System.out.println("	*---------------------------------------*");
 		System.out.println("\n -> Message sent to "+udp_port+".\n");
 
