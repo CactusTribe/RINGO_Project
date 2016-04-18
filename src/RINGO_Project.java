@@ -15,12 +15,12 @@ public class RINGO_Project{
 
 		boolean exit = false; 
 
-		System.out.println("<*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*>");
-		System.out.println("#                                                    #");
-		System.out.println("#               <*> RINGO Project <*>                #");
-		System.out.println("#                                                    #");
-		System.out.println("# Authors: Lefranc Joaquim, Skoda Jérôme             #");
-		System.out.println("<*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*>\n");
+		System.out.println("<*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*>");
+		System.out.println("#                                                          #");
+		System.out.println("#                   <*> RINGO Project <*>                  #");
+		System.out.println("#                                                          #");
+		System.out.println("# Authors: Lefranc Joaquim, Plat Guillaume, Skoda Jérôme   #");
+		System.out.println("<*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*><*>\n");
 		/*
 		Message mess = new Message("WELC 192.168.001.025 6000 127.000.000.001 7000\n");
 		mess.print(); // Debug
