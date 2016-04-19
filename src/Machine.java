@@ -69,27 +69,7 @@ public class Machine implements Runnable{
 				while(true){
 					try{
 
-						byte[] data = new byte[512];
-						DatagramPacket paquet = new DatagramPacket(data, data.length);
-
-						dso.receive(paquet);
-						String st = new String(paquet.getData(), 0, paquet.getLength());
-						InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
-
-						toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
-							isa.getHostName(), isa.getPort());
-
-						Message mess = new Message(st);
-
-						if(last_msg.containsKey(mess.getIdm()) == false){
-
-							isa = new InetSocketAddress(next_ip, udp_nextPort);
-							paquet = new DatagramPacket(mess.toString().getBytes(), mess.toString().length(), isa);
-							dso.send(paquet);	
-						}
-						else{
-							last_msg.remove(mess.getIdm());
-						}
+						udp_readMessages();
 
 					}catch (Exception e){
 						break;
@@ -117,7 +97,7 @@ public class Machine implements Runnable{
 						pw.print(mess.toString());
 						pw.flush();
 
-						readMessages(socket);
+						tcp_readMessages(socket);
 					
 						pw.close();
 						socket.close();
@@ -141,7 +121,7 @@ public class Machine implements Runnable{
 
 			Socket socket = new Socket(ip, port);
 			
-			readMessages(socket);
+			tcp_readMessages(socket);
 
 			socket.close();
 
@@ -166,7 +146,7 @@ public class Machine implements Runnable{
 		dso.send(paquet);	
 	}
 
-	public void readMessages(Socket socket) throws IOException{
+	public void tcp_readMessages(Socket socket) throws IOException{
 
 		InetAddress ia = socket.getInetAddress();
 		br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -209,10 +189,56 @@ public class Machine implements Runnable{
 				this.connected = true;
 				break;
 			}
+			else if(msg.getPrefix() == PrefixMsg.ACKC){
+				break;
+			}
 		}
 
 		pw.close();
 		br.close();
+	}
+
+	public void udp_readMessages() throws IOException{
+
+		byte[] data = new byte[512];
+		DatagramPacket paquet = new DatagramPacket(data, data.length);
+
+		dso.receive(paquet);
+		String st = new String(paquet.getData(), 0, paquet.getLength());
+		InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
+
+		toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
+			isa.getHostName(), isa.getPort());
+
+		Message msg = new Message(st);
+
+		if(msg.getPrefix() == PrefixMsg.TEST){
+
+		}
+		else if(msg.getPrefix() == PrefixMsg.APPL){
+
+		}
+		else if(msg.getPrefix() == PrefixMsg.WHOS){
+
+		}
+		else if(msg.getPrefix() == PrefixMsg.MEMB){
+
+		}
+		else if(msg.getPrefix() == PrefixMsg.GBYE){
+
+		}
+		else if(msg.getPrefix() == PrefixMsg.EYBG){
+
+		}
+
+		if(last_msg.containsKey(msg.getIdm()) == false){
+			isa = new InetSocketAddress(next_ip, udp_nextPort);
+			paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+			dso.send(paquet);	
+		}
+		else{
+			last_msg.remove(msg.getIdm());
+		}
 	}
 
 	public void toLogs(String msg, ProtocoleToken mode, ProtocoleToken direction ,String ip, int port){

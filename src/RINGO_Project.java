@@ -4,6 +4,12 @@ import java.io.*;
 
 public class RINGO_Project{
 
+	public static final short first_tcp = 5900;
+	public static final short first_udp = 6000;
+
+	public static short current_tcp = first_tcp;
+	public static short current_udp = first_udp;
+
 	public static Scanner input = new Scanner(System.in);
 	public static String argl; // Ligne de commande brute
   public static ArrayList<String> argv = new ArrayList<String>(); // Liste des arguments
@@ -151,16 +157,30 @@ public class RINGO_Project{
 		if(ip.equals("")) ip = "127.0.0.1";
 
 		System.out.print("  | TCP port : ");
-		try { tcp_port = (short)Integer.parseInt(input.nextLine());} 
-		catch (Exception e){ tcp_port = 5900;};
+		try { 
+			tcp_port = (short)Integer.parseInt(input.nextLine());
+		} 
+		catch (Exception e){ 
+			tcp_port = current_tcp; 
+			current_tcp++;
+		};
 
 		System.out.print("  | UDP port : ");
-		try { udp_port = (short)Integer.parseInt(input.nextLine());} 
-		catch (Exception e){ udp_port = 6000;};
+		try { 
+			udp_port = (short)Integer.parseInt(input.nextLine());
+		} 
+		catch (Exception e){ 
+			udp_port = current_udp;
+			current_udp++;
+		};
 
 		System.out.print("  | Multdif port : ");
-		try { multdif_port = (short)Integer.parseInt(input.nextLine());} 
-		catch (Exception e){ multdif_port = 7000;};
+		try { 
+			multdif_port = (short)Integer.parseInt(input.nextLine());
+		} 
+		catch (Exception e){ 
+			multdif_port = 7000;
+		};
 
 		System.out.println("  *-------------------------------------*");
 
