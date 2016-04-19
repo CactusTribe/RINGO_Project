@@ -15,12 +15,12 @@ public class Machine implements Runnable{
 	private short tcp_listenPort;
 	private short udp_nextPort;
 	private short multdif_port;
+	private boolean connected;
 
 	private ServerSocket tcp_socket; 
 	
 	private LinkedList<String> logs = new LinkedList<String>();
 
-	private boolean running = true;
 	private Thread udp_listening;
 	private Thread tcp_listening;
 
@@ -105,14 +105,13 @@ public class Machine implements Runnable{
 					try{
 
 						Socket socket = tcp_socket.accept();
-						InetAddress ia = socket.getInetAddress();
 						pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 
 						Message mess = new Message();
 						mess.setPrefix(PrefixMsg.WELC);
-						mess.setIp(ip);
+						mess.setIp(next_ip);
 						mess.setIp_diff(ip_multdif);
-						mess.setPort((short)udp_listenPort);
+						mess.setPort((short)udp_nextPort);
 						mess.setPort_diff((short)multdif_port);
 
 						pw.print(mess.toString());
@@ -194,6 +193,8 @@ public class Machine implements Runnable{
 
 				pw.print(rep.toString());
 				pw.flush();
+
+				this.connected = true;
 			}
 			else if(msg.getPrefix() == PrefixMsg.NEWC){
 				this.udp_nextPort = msg.getPort();
@@ -204,6 +205,8 @@ public class Machine implements Runnable{
 
 				pw.print(rep.toString());
 				pw.flush();
+
+				this.connected = true;
 				break;
 			}
 		}
@@ -262,23 +265,26 @@ public class Machine implements Runnable{
 		return this.ident;
 	}
 
-	public boolean getState(){
-		return this.running;
-	}
-
 	public short getPortTCP(){
 		return this.tcp_listenPort;
+	}
+
+	public short getPortUDP(){
+		return this.udp_listenPort;
 	}
 
 	public String getIp(){
 		return this.ip;
 	}
 
+	public boolean isConnected(){
+		return this.connected;
+	}
+
 	public void stop(){
 		try{
 			this.dso.close();
 			this.tcp_socket.close();
-			this.running = false;
 		}catch (Exception e){
 			e.printStackTrace();
 		}
