@@ -108,7 +108,7 @@ public class RINGO_Project{
 	public static void printStats(){
 		System.out.println("\n");
 		System.out.println("  |  N° - (state) IDENT [    HOST    |  IP_MULT  |    NEXT_IP   | TCP | UDP | NXT_UDP | MULT ]");
-		System.out.println("  |  --------------------------------------------------------------------");
+		System.out.println("  |  -----------------------------------------------------------------------------------------");
 		for(int i=0; i<machines.size(); i++)
 			System.out.println("  |  "+i+" - ("+((machines.get(i).isConnected()) ? "C" : "A") +") "+machines.get(i));
 		System.out.println("  |");
@@ -232,8 +232,6 @@ public class RINGO_Project{
 					if(machines.get(m1).isConnected() == false){
 						System.out.println("");
 						machines.get(m1).tcp_connectTo(machines.get(m2).getIp(), machines.get(m2).getPortTCP());
-
-						System.out.println(String.format(" -> Connect [%d] to [%d] : ",Integer.parseInt(argv.get(1)), Integer.parseInt(argv.get(2))));
 					}
 					else
 						System.out.println("Error : machine already connected.");
@@ -257,7 +255,6 @@ public class RINGO_Project{
 
 				if(m1 < machines.size()){
 					machines.get(m1).udp_sendTest();
-					System.out.println(String.format(" -> TEST sent by [%d]", m1));
 				}
 				else
 					System.out.println("Error : machine doesn't exist.");

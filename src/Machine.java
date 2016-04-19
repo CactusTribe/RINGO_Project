@@ -167,7 +167,7 @@ public class Machine implements Runnable{
 			toLogs(msg.toString(), ProtocoleToken.TCP, ProtocoleToken.RECEIVED,
 				ia.getHostName(), socket.getPort());
 
-			System.out.println(this.ident +" read "+ msg);
+			System.out.println("  > "+this.ident +" read : "+ msg);
 
 			if(msg.getPrefix() == PrefixMsg.WELC){
 
@@ -280,7 +280,8 @@ public class Machine implements Runnable{
 		test.setIp_diff(ip_multdif);
 		test.setPort_diff(multdif_port);
 
-		System.out.println(" -> Send : "+test);	
+		System.out.println("");
+		System.out.println("  > "+this.ident+" send : "+test);	
 
 		try{
 
@@ -297,19 +298,19 @@ public class Machine implements Runnable{
 				if(System.currentTimeMillis() - start_time < delay){
 
 					if(last_msg.containsKey(last_idm_test) == false){
-						System.out.println("Structure is correct.");
+						System.out.println(" -> Structure is correct.");
 						break;
 					}
 				}
 				else{
 					if(last_msg.containsKey(last_idm_test) == true){
-						System.out.println("Structure is broken. [DOWN] sent on multicast.");
+						System.out.println(" -> Structure is broken. [DOWN] sent on multicast.");
 						diff_sendDown();
 						last_msg.remove(test.getIdm());
 						break;
 					}	
 					else{
-						System.out.println("Structure is correct.");
+						System.out.println(" -> Structure is correct.");
 						break;
 					}
 				}
@@ -317,7 +318,7 @@ public class Machine implements Runnable{
 			}
 
 		}catch (Exception e){
-			System.out.println("Structure is broken. [DOWN] sent on multicast.");
+			System.out.println(" -> Structure is broken. [DOWN] sent on multicast.");
 			diff_sendDown();
 			e.printStackTrace();
 		}
