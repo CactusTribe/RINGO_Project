@@ -154,7 +154,7 @@ public class RINGO_Project{
 
 		System.out.print("  | IP diff : ");
 		ip = input.nextLine();
-		if(ip.equals("")) ip = "127.0.0.1";
+		if(ip.equals("")) ip = "225.1.2.4";
 
 		System.out.print("  | TCP port : ");
 		try { 
@@ -256,7 +256,7 @@ public class RINGO_Project{
 				int m1 = Integer.parseInt(argv.get(1));
 
 				if(m1 < machines.size()){
-					machines.get(m1).sendTest();
+					machines.get(m1).udp_sendTest();
 					System.out.println(String.format(" -> TEST sent by [%d]", m1));
 				}
 				else

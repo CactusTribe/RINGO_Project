@@ -79,6 +79,9 @@ public class Message{
 			mess = String.format("%s %08d %s %04d\n",
 				prefix,idm,ip_diff,port_diff);
 		}
+		else if(prefix == PrefixMsg.DOWN){
+			mess = String.format("%s\n", prefix);
+		}
 
 		return mess;
 	}
@@ -147,12 +150,20 @@ public class Message{
 		return this.ip_succ;
 	}
 
+	public String getIp_diff(){
+		return this.ip_diff;
+	}
+
 	public short getPort(){
 		return this.port;
 	}
 
 	public short getPort_succ(){
 		return this.port_succ;
+	}
+
+	public short getPort_diff(){
+		return this.port_diff;
 	}
 }
 
