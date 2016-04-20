@@ -290,7 +290,7 @@ public class Machine implements Runnable{
 			isa.getHostName(), isa.getPort());
 
 		Message msg = new Message(st);
-		System.out.println("  > "+this.ident +" read : "+ msg);
+		//System.out.println("  > "+this.ident +" read : "+ msg);
 
 		// Interprétation du message
 		if(msg.getPrefix() == ProtocoleToken.TEST){
@@ -581,30 +581,4 @@ public class Machine implements Runnable{
 		System.out.println("-----------------------------");
 	}
 
-
-	/**
-   * Méthode main permetant un lancement standalone de la machine
-   * @param args Paramètres de lancement
-   */
-	public static void main(String[] args){
-		if(args.length < 4){
-			System.out.println("Usage: Machine <ip_multdif> <tcp_port> <udp_port> <multdif_port>");
-			System.exit(1);
-		}
-
-		try{
-
-			String ip_multdif = args[0];
-			short tcp_port = (short)Integer.parseInt(args[1]);
-			short udp_port = (short)Integer.parseInt(args[2]);
-			short multdif_port = (short)Integer.parseInt(args[3]);
-
-			Machine m = new Machine(ip_multdif, tcp_port, udp_port, multdif_port);
-			Thread t_machine = new Thread(m);
-			t_machine.start();
-
-		}catch (Exception e){
-			System.out.println("Usage: Machine <ip_multdif> <tcp_port> <udp_port> <multdif_port>");
-		}
-	}
 }
