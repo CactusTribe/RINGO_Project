@@ -2,19 +2,29 @@ import java.util.*;
 import java.net.*;
 import java.io.*;
 
+/**
+ * RINGO_Project est une application permetant de gérer un anneau
+ * (Utilisée également comme outil de développement afin de faciliter les tests) 	
+ *
+ * @author Lefranc Joaquim, Plat Guillaume, Skoda Jérôme
+ */
+
 public class RINGO_Project{
 
-	public static final short first_tcp = 5900;
+	// Premiers ports à utiliser
+	public static final short first_tcp = 5900; 
 	public static final short first_udp = 6000;
 
 	public static short current_tcp = first_tcp;
 	public static short current_udp = first_udp;
 
+	// Gestion des commandes
 	public static Scanner input = new Scanner(System.in);
 	public static String argl; // Ligne de commande brute
   public static ArrayList<String> argv = new ArrayList<String>(); // Liste des arguments
-  public static LinkedList<Machine> machines = new LinkedList<Machine>();
 
+
+  public static LinkedList<Machine> machines = new LinkedList<Machine>();
   public static DatagramSocket dso = null;
 
 	public static void main(String[] args){
@@ -32,6 +42,7 @@ public class RINGO_Project{
 		System.out.println(mess); // toString()
 		*/
 
+		// Boucle d'execution des commandes
 		while(true){
 		  display_prompt();
 		  read_command();
@@ -108,6 +119,9 @@ public class RINGO_Project{
     }
   }
 
+  /**
+   * Affiche la liste des machines
+   */
 	public static void printStats(){
 		System.out.println("\n");
 		System.out.println("  |  N° - (state) IDENT [    HOST    |  IP_MULT  |    NEXT_IP   | TCP | UDP | NXT_UDP | MULT ]");
@@ -119,6 +133,10 @@ public class RINGO_Project{
 		System.out.println("\n");
 	}
 
+
+	/**
+   * Affiche les logs d'une machine
+   */
 	public static void printLogs(){
 	  if(argv.size() <= 1)
   		System.out.println("Usage: l <num_machine>");
@@ -146,6 +164,10 @@ public class RINGO_Project{
 		}	
 	}
 
+	/**
+   * Ajoute une nouvelle machine avec des valeurs par défaut si les champs
+   * sont vides.
+   */
 	public static void newMachine(){
 		String ip = "";
 		short tcp_port = 0;
@@ -199,6 +221,9 @@ public class RINGO_Project{
 		printStats();
 	}
 
+	/**
+   * Supprime une machine de la liste
+   */
 	public static void removeMachine(){
     if(argv.size() <= 1)
   		System.out.println("Usage: r <num_machine>");
@@ -222,6 +247,9 @@ public class RINGO_Project{
 		}
 	}
 
+	/**
+   * Connecte une machine à une autre sur l'anneau
+   */
 	public static void connectMachine(){
 		if(argv.size() <= 2)
 			System.out.println("Usage: c <machine1> <machine2> (Connect machine1 to machine2 in TCP)");
@@ -249,7 +277,10 @@ public class RINGO_Project{
 		}
 	}
 
-public static void disconnectMachine(){
+	/**
+   * Deconnecte une machine
+   */
+	public static void disconnectMachine(){
 		if(argv.size() <= 1)
 			System.out.println("Usage: d <machine> (Disonnect machine)");
 		else{
@@ -274,6 +305,9 @@ public static void disconnectMachine(){
 		}
 	}
 
+	/**
+   * Lance un test à partir du point donné en argument
+   */
 	public static void testRing(){
 		if(argv.size() <= 1)
 			System.out.println("Usage: t <machine> (Send TEST into the ring)");
@@ -294,6 +328,9 @@ public static void disconnectMachine(){
 		}	
 	}
 
+	/**
+   * Ecrit un message sur le port UDP choisi
+   */
 	public static void writeMessage(){
 		int udp_port = 0;
 		String mess = "";
@@ -322,6 +359,9 @@ public static void disconnectMachine(){
 		}
 	}
 
+	/**
+   * Eteint toutes les machines.
+   */
 	public static void stopMachines(){
 		for(int i=0; i<machines.size(); i++){
 			machines.get(i).stop();

@@ -4,9 +4,16 @@ import java.io.*;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 
+/**
+ * Classe Machine
+ * Permet de lancer une machine	
+ *
+ * @author Lefranc Joaquim, Plat Guillaume, Skoda Jérôme
+ */
 
 public class Machine implements Runnable{
 
+	// Informations de connexion
 	private String ident;
 	private String ip;
 	private String ip_multdif;
@@ -16,11 +23,8 @@ public class Machine implements Runnable{
 	private short udp_nextPort;
 	private short multdif_port;
 	private boolean connected;
-
-	private ServerSocket tcp_socket; 
 	
-	private LinkedList<String> logs = new LinkedList<String>();
-
+	// Threads d'écoutes
 	private Thread udp_listening;
 	private Thread tcp_listening;
 	private Thread diff_listening;
@@ -30,13 +34,22 @@ public class Machine implements Runnable{
 	private int delay = 5000; // Interval de temps pour le TEST en ms
 	private int last_idm_test; // L'id du dernier message TEST envoyé
 
+	// Entrées / Sorties
+	private ServerSocket tcp_socket; 
 	private DatagramSocket dso;
 	private MulticastSocket mso;
 	private PrintWriter pw;
 	private BufferedReader br;
 
+	// Historique des envois
 	private Hashtable last_msg;
+	// Historique des recus
+	private LinkedList<String> logs = new LinkedList<String>();
 
+
+	/**
+   * Constructeur par defaut
+   */
 	public Machine(){
 		this.ident = getRandomIdent();
 		this.ip_multdif = null;
@@ -57,6 +70,14 @@ public class Machine implements Runnable{
 		describeMe();
 	}
 
+	/**
+   * Constructeur
+   * @param ip_multdif Adresse IP de multicast
+	 * @param tcp_listenPort Port d'écoute TCP
+	 * @param udp_listenPort Port d'écoute UDP
+	 * @param multdif_port Port d'écoute UDP multicast
+	 * @throws IOException Lance une exception en cas de problème
+   */
 	public Machine(String ip_multdif, short tcp_listenPort, short udp_listenPort, short multdif_port) throws Exception{
 		this.ident = getRandomIdent();
 		this.ip_multdif = ip_multdif;
@@ -74,6 +95,9 @@ public class Machine implements Runnable{
 		this.next_ip = ip;
 
 
+		/**
+	   * Thread d'écoute multicast
+	   */
 		diff_listening = new Thread(new Runnable() {
 			public void run(){
 				while(true){
@@ -86,6 +110,9 @@ public class Machine implements Runnable{
 			}
 		});
 
+		/**
+	   * Thread d'écoute UDP
+	   */
 		udp_listening = new Thread(new Runnable() {
 			public void run(){
 				while(true){
@@ -98,6 +125,9 @@ public class Machine implements Runnable{
 			}
 		});
 
+		/**
+	   * Thread d'écoute TCP
+	   */
 		tcp_listening = new Thread(new Runnable() {
 			public void run(){
 
@@ -108,7 +138,7 @@ public class Machine implements Runnable{
 						pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 
 						Message mess = new Message();
-						mess.setPrefix(PrefixMsg.WELC);
+						mess.setPrefix(ProtocoleToken.WELC);
 						mess.setIp(next_ip);
 						mess.setIp_diff(ip_multdif);
 						mess.setPort((short)udp_nextPort);
@@ -131,12 +161,20 @@ public class Machine implements Runnable{
 
 	}
 
+	/**
+   * Méthode lancée lors de l'appel à Machine.start()
+   */
 	public void run(){
 		diff_listening.start();
 		udp_listening.start();
 		tcp_listening.start();
 	}
 
+	/**
+   * Lance une connexion vers l'ip et le port distant
+   * @param ip IP de la machine distante
+   * @param port Port de la machine distante
+   */
 	public void tcp_connectTo(String ip, short port){
 		try{
 
@@ -149,9 +187,13 @@ public class Machine implements Runnable{
 		}
 	}
 
+	/**
+   * Méthode permetant de sortir de l'anneau
+   * @throws IOException Lance une exception en cas de problème
+   */
 	public void leaveRing() throws IOException{
 		Message msg = new Message();
-		msg.setPrefix(PrefixMsg.GBYE);
+		msg.setPrefix(ProtocoleToken.GBYE);
 		msg.setIdm();
 		msg.setIp(this.ip);
 		msg.setPort(this.udp_listenPort);
@@ -161,6 +203,11 @@ public class Machine implements Runnable{
 		udp_sendMsg(msg);
 	}
 
+	/**
+   * Boucle de lecture des messages entrant TCP
+   * @param socket Socket à ecouter
+   * @throws IOException Lance une exception en cas de problème
+   */
 	public void tcp_readMessages(Socket socket) throws IOException{
 
 		InetAddress ia = socket.getInetAddress();
@@ -169,16 +216,19 @@ public class Machine implements Runnable{
 
 		while(true){
 
+			// Lecture du message entrant
 			String st_mess = br.readLine();
 			Message msg = new Message(st_mess);
+			System.out.println("  > "+this.ident +" read : "+ msg);
 
+			// Ajout de l'action dans les logs
 			toLogs(msg.toString(), ProtocoleToken.TCP, ProtocoleToken.RECEIVED,
 				ia.getHostName(), socket.getPort());
 
-			System.out.println("  > "+this.ident +" read : "+ msg);
+			// Comportements définis en fonction du prefixe
+			if(msg.getPrefix() == ProtocoleToken.WELC){
 
-			if(msg.getPrefix() == PrefixMsg.WELC){
-
+				// Modification des informations
 				this.udp_nextPort = msg.getPort();
 				this.next_ip = msg.getIp();
 				this.ip_multdif = msg.getIp_diff();
@@ -186,8 +236,9 @@ public class Machine implements Runnable{
 				this.mso = new MulticastSocket(this.multdif_port);
 				this.mso.joinGroup(InetAddress.getByName(ip_multdif));
 
+				// Envoi de la réponse de connexion
 				Message rep = new Message();
-				rep.setPrefix(PrefixMsg.NEWC);
+				rep.setPrefix(ProtocoleToken.NEWC);
 				rep.setIp(ip);
 				rep.setPort((short)udp_listenPort);
 
@@ -196,13 +247,14 @@ public class Machine implements Runnable{
 
 				this.connected = true;
 			}
-			else if(msg.getPrefix() == PrefixMsg.NEWC){
+			else if(msg.getPrefix() == ProtocoleToken.NEWC){
 
 				this.udp_nextPort = msg.getPort();
 				this.next_ip = msg.getIp();
 
+				// Confirmation de connexion
 				Message rep = new Message();
-				rep.setPrefix(PrefixMsg.ACKC);
+				rep.setPrefix(ProtocoleToken.ACKC);
 
 				pw.print(rep.toString());
 				pw.flush();
@@ -210,7 +262,7 @@ public class Machine implements Runnable{
 				this.connected = true;
 				break;
 			}
-			else if(msg.getPrefix() == PrefixMsg.ACKC){
+			else if(msg.getPrefix() == ProtocoleToken.ACKC){
 				break;
 			}
 		}
@@ -219,36 +271,44 @@ public class Machine implements Runnable{
 		br.close();
 	}
 
+	/**
+   * Lecture des messages entrants UDP
+   * @throws IOException Lance une exception en cas de problème
+   */
 	public void udp_readMessages() throws IOException{
 
+		// Attente d'un paquet sur le port UDP
 		byte[] data = new byte[512];
 		DatagramPacket paquet = new DatagramPacket(data, data.length);
-
 		dso.receive(paquet);
+
 		String st = new String(paquet.getData(), 0, paquet.getLength());
 		InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
 
+		// Ajout dans les logs
 		toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
 			isa.getHostName(), isa.getPort());
 
 		Message msg = new Message(st);
+		System.out.println("  > "+this.ident +" read : "+ msg);
 
-		if(msg.getPrefix() == PrefixMsg.TEST){
-
-		}
-		else if(msg.getPrefix() == PrefixMsg.APPL){
-
-		}
-		else if(msg.getPrefix() == PrefixMsg.WHOS){
+		// Interprétation du message
+		if(msg.getPrefix() == ProtocoleToken.TEST){
 
 		}
-		else if(msg.getPrefix() == PrefixMsg.MEMB){
+		else if(msg.getPrefix() == ProtocoleToken.APPL){
 
 		}
-		else if(msg.getPrefix() == PrefixMsg.GBYE){
+		else if(msg.getPrefix() == ProtocoleToken.WHOS){
+
+		}
+		else if(msg.getPrefix() == ProtocoleToken.MEMB){
+
+		}
+		else if(msg.getPrefix() == ProtocoleToken.GBYE){
 			if(msg.getIp().equals(this.next_ip) && msg.getPort() == this.udp_nextPort){
 				Message rep = new Message();
-				rep.setPrefix(PrefixMsg.EYBG);
+				rep.setPrefix(ProtocoleToken.EYBG);
 				rep.setIdm();
 
 				isa = new InetSocketAddress(this.next_ip, this.udp_nextPort);
@@ -262,7 +322,7 @@ public class Machine implements Runnable{
 			}
 
 		}
-		else if(msg.getPrefix() == PrefixMsg.EYBG){
+		else if(msg.getPrefix() == ProtocoleToken.EYBG){
 			last_msg.put(msg.getIdm(), msg.toString());
 			this.next_ip = this.ip;
 			this.udp_nextPort = this.udp_listenPort;
@@ -279,30 +339,41 @@ public class Machine implements Runnable{
 		}
 	}
 
+	/**
+   * Lecture des messages entrants UDP multicast
+   * @throws IOException Lance une exception en cas de problème
+   */
 	public void diff_readMessages() throws IOException{
 
+		// Attente d'un paquet sur le port UDP multicast
 		byte[] data = new byte[512];
 		DatagramPacket paquet = new DatagramPacket(data, data.length);
-		
 		mso.receive(paquet);
+
 		String st = new String(paquet.getData(), 0, paquet.getLength());
 		InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
 
+		// Ajout dans les logs
 		toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
 			isa.getHostName(), isa.getPort());
 
 		Message msg = new Message(st);
 
-		if(msg.getPrefix() == PrefixMsg.DOWN){
+		// Interprétation du message
+		if(msg.getPrefix() == ProtocoleToken.DOWN){
 			this.next_ip = ip;
 			this.udp_nextPort = udp_listenPort;
 			this.connected = false;
 		}
 	}
 
+	/**
+   * Lance une procédure de TEST via UDP
+   * @throws IOException Lance une exception en cas de problème
+   */
 	public void udp_sendTest() throws IOException{
 		Message test = new Message();
-		test.setPrefix(PrefixMsg.TEST);
+		test.setPrefix(ProtocoleToken.TEST);
 		test.setIdm();
 		test.setIp_diff(ip_multdif);
 		test.setPort_diff(multdif_port);
@@ -312,15 +383,17 @@ public class Machine implements Runnable{
 
 		try{
 
+			// Envoi du message de TEST
 			InetSocketAddress isa = new InetSocketAddress(next_ip, udp_nextPort);
 			DatagramPacket paquet = new DatagramPacket(test.toString().getBytes(), test.toString().length(), isa);
 			dso.send(paquet);	
 
+			// On ajoute le message dans l'historique des envois
 			last_msg.put(test.getIdm(), test.toString());
 			last_idm_test = test.getIdm();
 
+			// Début du timer de la procédure de TEST
 			start_time = System.currentTimeMillis();
-
 			while(true){
 				if(System.currentTimeMillis() - start_time < delay){
 
@@ -351,25 +424,49 @@ public class Machine implements Runnable{
 		}
 	}
 
+	/**
+   * Permet d'envoyer un message via UDP
+   * @param msg Message à envoyer
+   * @throws IOException Lance une exception en cas de problème
+   */
 	public void udp_sendMsg(Message msg) throws IOException{
 		System.out.println("  > "+this.ident+" send : "+msg);	
 
+		// On ajoute le message dans l'historique des envois
+		last_msg.put(msg.getIdm(), msg.toString());
+
+		// Envoi du message
 		InetSocketAddress isa = new InetSocketAddress(next_ip, udp_nextPort);
 		DatagramPacket paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
 		dso.send(paquet);	
 	}
 
+	/**
+   * Lance le message DOWN via UDP multicast
+   * @throws IOException Lance une exception en cas de problème
+   */
 	public void diff_sendDown() throws IOException{
 		Message dw = new Message();
-		dw.setPrefix(PrefixMsg.DOWN);
+		dw.setPrefix(ProtocoleToken.DOWN);
 
+		// On ajoute le message dans l'historique des envois
 		last_msg.put(dw.getIdm(), dw.toString());
 
+		// Envoi du message
 		InetSocketAddress isa = new InetSocketAddress(ip_multdif, multdif_port);
 		DatagramPacket paquet = new DatagramPacket(dw.toString().getBytes(), dw.toString().length(), isa);
 		dso.send(paquet);	
 	}
 
+	/**
+   * Inscrit un message dans les logs
+   *
+   * @param msg Message a inscrire
+   * @param mode UDP ou TCP
+   * @param direction SENT ou RECEIVED
+   * @param ip IP de la source
+   * @param port Port de la source
+   */
 	public void toLogs(String msg, ProtocoleToken mode, ProtocoleToken direction ,String ip, int port){
 		Date current_time = new Date();
 		String str_cur_time = (new SimpleDateFormat("HH:mm")).format(current_time);
@@ -386,6 +483,10 @@ public class Machine implements Runnable{
 
 	}
 
+	/**
+   * Renvoi un identifiant unique basé sur le timestamp depuis 1970
+   * @return String random ident
+   */
 	private String getRandomIdent(){
 		Date date = new Date();
 		Timestamp time = new Timestamp(date.getTime());
@@ -393,10 +494,18 @@ public class Machine implements Runnable{
 		return Integer.toString(since1970);
 	}
 
+	/**
+   * Renvoi les logs
+   * @return logs
+   */
 	public LinkedList<String> getLogs(){
 		return this.logs;
 	}
 
+	/**
+   * Fonction de transformation
+   * @return Représentation sous forme de string
+   */
 	public String toString(){
 		String m = String.format("%s [ %s | %s | %s | %d | %d | %d | %d ]",
 			ident, ip, ip_multdif, next_ip, tcp_listenPort, udp_listenPort, udp_nextPort, multdif_port);
@@ -404,26 +513,49 @@ public class Machine implements Runnable{
 		return m;
 	}
 
+	/**
+   * Renvoi l'identifiant
+   * @return ident
+   */
 	public String getIdent(){
 		return this.ident;
 	}
 
+	/**
+   * Renvoi le port TCP
+   * @return tcp_listenPort
+   */
 	public short getPortTCP(){
 		return this.tcp_listenPort;
 	}
 
+	/**
+   * Renvoi le port UDP
+   * @return udp_listenPort
+   */
 	public short getPortUDP(){
 		return this.udp_listenPort;
 	}
 
+	/**
+   * Renvoi l'ip
+   * @return ip
+   */
 	public String getIp(){
 		return this.ip;
 	}
 
+	/**
+   * Renvoi l'état de connexion
+   * @return connected
+   */
 	public boolean isConnected(){
 		return this.connected;
 	}
 
+	/**
+   * Ferme tout les sockets
+   */
 	public void stop(){
 		try{
 			this.dso.close();
@@ -434,6 +566,9 @@ public class Machine implements Runnable{
 		}
 	}
 
+	/**
+   * Affiche la description
+   */
 	public void describeMe(){
 		System.out.println("*****************************");
 		System.out.println(" -> ident : " + this.ident);
@@ -446,6 +581,11 @@ public class Machine implements Runnable{
 		System.out.println("-----------------------------");
 	}
 
+
+	/**
+   * Méthode main permetant un lancement standalone de la machine
+   * @param args Paramètres de lancement
+   */
 	public static void main(String[] args){
 		if(args.length < 4){
 			System.out.println("Usage: Machine <ip_multdif> <tcp_port> <udp_port> <multdif_port>");

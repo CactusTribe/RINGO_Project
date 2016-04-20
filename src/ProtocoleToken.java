@@ -1,4 +1,24 @@
+/**
+ * Enumeration ProtocoleToken
+ * - Contient les tokens du protocole
+ *
+ * @author Lefranc Joaquim, Plat Guillaume, Skoda Jérôme
+ */
+
 public enum ProtocoleToken{
+	WELC("WELC"),
+	NEWC("NEWC"),
+	ACKC("ACKC"),
+	APPL("APPL"),
+	WHOS("WHOS"),
+	MEMB("MEMB"),
+	GBYE("GBYE"),
+	EYBG("EYBG"),
+	TEST("TEST"),
+	DOWN("DOWN"),
+	DUPL("DUPL"),
+	ACKD("ACKD"),
+
 	TCP("TCP"),
 	UDP("UDP"),
 	RECEIVED("RECEIVED"),
@@ -8,28 +28,5 @@ public enum ProtocoleToken{
 
 	ProtocoleToken(String name){
 		this.name = name;	
-	}
-
-	public String getName(){
-		return name;
-	}
-
-	public static ProtocoleToken getToken(String str){
-
-		for(ProtocoleToken pref : ProtocoleToken.values()){
-
-      if(ProtocoleToken.TCP.getName().equals(str))
-        return ProtocoleToken.TCP;
-
-      else if(ProtocoleToken.UDP.getName().equals(str))
-        return ProtocoleToken.UDP;
-
-      else if(ProtocoleToken.RECEIVED.getName().equals(str))
-        return ProtocoleToken.RECEIVED;
-
-      else if(ProtocoleToken.SENT.getName().equals(str))
-        return ProtocoleToken.SENT;
-    }
-    return null;
 	}
 }
