@@ -219,7 +219,7 @@ public class Machine implements Runnable{
 			// Lecture du message entrant
 			String st_mess = br.readLine();
 			Message msg = new Message(st_mess);
-			System.out.println("  > "+this.ident +" read : "+ msg);
+			//System.out.println("  > "+this.ident +" read : "+ msg);
 
 			// Ajout de l'action dans les logs
 			toLogs(msg.toString(), ProtocoleToken.TCP, ProtocoleToken.RECEIVED,

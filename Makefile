@@ -19,6 +19,9 @@ run:
 runa:
 	$(JVM) -classpath $(BIN_PATH) MachineSA 225.1.2.4 5900 6000 7000
 
+runb:
+	$(JVM) -classpath $(BIN_PATH) MachineSA 225.1.2.4 5905 6005 7000
+
 tar: clean
 	tar cf $(NAME_JAR).tar Makefile README.txt bin/ src/ javadoc/
 
@@ -29,12 +32,12 @@ jar:
 	echo "Main-Class: $(MAIN)\n" > META-INF/MANIFEST.MF
 	jar cvmf META-INF/MANIFEST.MF $(NAME_JAR).jar -C $(BIN_PATH) .
 
-jara:
+jarsa:
 	echo "Main-Class: MachineSA\n" > META-INF/MANIFEST.MF
 	jar cvmf META-INF/MANIFEST.MF Machine.jar -C $(BIN_PATH) .
 
 runjar:
 	$(JVM) -jar $(NAME_JAR).jar
 
-runjara:
+runjarsa:
 	$(JVM) -jar Machine.jar 225.1.2.4 5900 6000 7000
