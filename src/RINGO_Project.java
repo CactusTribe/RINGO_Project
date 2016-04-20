@@ -44,7 +44,7 @@ public class RINGO_Project{
    * Affiche une nouvelle ligne pour la prochaine commande
    */
   public static void display_prompt(){
-      System.out.print("[a]Add [r]Remove [c]Connect [l]Logs [w]Write [t]Test [s]Stats [q]Quit : ");
+      System.out.print("[a]Add [r]Remove [c]Connect [d]Disconnect\n[l]Logs [w]Write [t]Test [s]Stats [q]Quit : ");
   }
   
   /**
@@ -82,6 +82,9 @@ public class RINGO_Project{
     }
     else if(argv.get(0).equals("c")){
     	connectMachine();
+    }
+    else if(argv.get(0).equals("d")){
+    	disconnectMachine();
     }
     else if(argv.get(0).equals("l")){
     	printLogs();
@@ -242,6 +245,31 @@ public class RINGO_Project{
 				
 			}catch (Exception e){
 				System.out.println("Usage: c <machine1> <machine2> (Connect machine1 to machine2 in TCP)");
+			}
+		}
+	}
+
+public static void disconnectMachine(){
+		if(argv.size() <= 1)
+			System.out.println("Usage: d <machine> (Disonnect machine)");
+		else{
+			try{
+				int m1 = Integer.parseInt(argv.get(1));
+
+				if(m1 < machines.size()){
+					if(machines.get(m1).isConnected() == true){
+						System.out.println("");
+						machines.get(m1).leaveRing();
+					}
+					else
+						System.out.println("Error : machine is not connected.");
+				}
+				else
+					System.out.println("Error : machine doesn't exist.");
+
+				
+			}catch (Exception e){
+				System.out.println("Usage: d <machine> (Disonnect machine)");
 			}
 		}
 	}

@@ -53,6 +53,24 @@ public class Message{
 				this.ip_diff = argv.get(2);
 				this.port_diff = (short)Integer.parseInt(argv.get(3));
 			}
+			else if(prefix == PrefixMsg.DOWN){
+			}
+			else if(prefix == PrefixMsg.WHOS){
+				this.idm = Integer.parseInt(argv.get(1));
+			}
+			else if(prefix == PrefixMsg.MEMB){
+				this.idm = Integer.parseInt(argv.get(1));
+			}
+			else if(prefix == PrefixMsg.GBYE){
+				this.idm = Integer.parseInt(argv.get(1));
+				this.ip = argv.get(2);
+				this.port = (short)Integer.parseInt(argv.get(3));
+				this.ip_succ = argv.get(4);
+				this.port_succ = (short)Integer.parseInt(argv.get(5));
+			}
+			else if(prefix == PrefixMsg.EYBG){
+				this.idm = Integer.parseInt(argv.get(1));
+			}
 		}
 	}
 
@@ -81,6 +99,22 @@ public class Message{
 		}
 		else if(prefix == PrefixMsg.DOWN){
 			mess = String.format("%s\n", prefix);
+		}
+		else if(prefix == PrefixMsg.WHOS){
+			mess = String.format("%s %08d\n", 
+				prefix, idm);
+		}
+		else if(prefix == PrefixMsg.MEMB){
+			mess = String.format("%s %08d\n", 
+				prefix, idm);
+		}
+		else if(prefix == PrefixMsg.GBYE){
+			mess = String.format("%s %08d %s %04d %s %04d\n", 
+				prefix, idm, ip, port, ip_succ, port_succ);
+		}
+		else if(prefix == PrefixMsg.EYBG){
+			mess = String.format("%s %08d\n", 
+				prefix, idm);
 		}
 
 		return mess;
@@ -124,14 +158,17 @@ public class Message{
 	public void setPort(short p){
 		this.port = p;
 	}
+	public void setPort_succ(short p){
+		this.port_succ = p;
+	}
 	public void setIp_diff(String ip_diff){
 		this.ip_diff = ip_diff;
 	}
 	public void setPort_diff(short port_diff){
 		this.port_diff = port_diff;
 	}
-	public void setIdm(int id){
-		this.idm = id;
+	public void setIdm(){
+		this.idm = (int) (new Date().getTime()/1000);
 	}
 
 	public PrefixMsg getPrefix(){
@@ -146,7 +183,7 @@ public class Message{
 		return this.idm;
 	}
 
-	public String getIp_Succ(){
+	public String getIp_succ(){
 		return this.ip_succ;
 	}
 

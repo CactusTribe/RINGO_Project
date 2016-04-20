@@ -73,13 +73,12 @@ public class Machine implements Runnable{
 		this.ip = InetAddress.getLocalHost().getHostAddress();
 		this.next_ip = ip;
 
-		udp_listening = new Thread(new Runnable() {
+
+		diff_listening = new Thread(new Runnable() {
 			public void run(){
 				while(true){
 					try{
-
-						udp_readMessages();
-
+						diff_readMessages();
 					}catch (Exception e){
 						break;
 					}
@@ -87,13 +86,11 @@ public class Machine implements Runnable{
 			}
 		});
 
-		diff_listening = new Thread(new Runnable() {
+		udp_listening = new Thread(new Runnable() {
 			public void run(){
 				while(true){
 					try{
-
-						diff_readMessages();
-
+						udp_readMessages();
 					}catch (Exception e){
 						break;
 					}
@@ -129,16 +126,15 @@ public class Machine implements Runnable{
 						break;
 					}
 				}
-
 			}
 		});
 
 	}
 
 	public void run(){
+		diff_listening.start();
 		udp_listening.start();
 		tcp_listening.start();
-		diff_listening.start();
 	}
 
 	public void tcp_connectTo(String ip, short port){
@@ -151,6 +147,18 @@ public class Machine implements Runnable{
 		}catch (Exception e){
 			System.out.println(e);
 		}
+	}
+
+	public void leaveRing() throws IOException{
+		Message msg = new Message();
+		msg.setPrefix(PrefixMsg.GBYE);
+		msg.setIdm();
+		msg.setIp(this.ip);
+		msg.setPort(this.udp_listenPort);
+		msg.setIp_succ(this.next_ip);
+		msg.setPort_succ(this.udp_nextPort);
+
+		udp_sendMsg(msg);
 	}
 
 	public void tcp_readMessages(Socket socket) throws IOException{
@@ -238,10 +246,27 @@ public class Machine implements Runnable{
 
 		}
 		else if(msg.getPrefix() == PrefixMsg.GBYE){
+			if(msg.getIp().equals(this.next_ip) && msg.getPort() == this.udp_nextPort){
+				Message rep = new Message();
+				rep.setPrefix(PrefixMsg.EYBG);
+				rep.setIdm();
+
+				isa = new InetSocketAddress(this.next_ip, this.udp_nextPort);
+				paquet = new DatagramPacket(rep.toString().getBytes(), rep.toString().length(), isa);
+				dso.send(paquet);	
+
+				last_msg.put(msg.getIdm(), msg.toString());
+
+				this.next_ip = msg.getIp_succ();
+				this.udp_nextPort = msg.getPort_succ();
+			}
 
 		}
 		else if(msg.getPrefix() == PrefixMsg.EYBG){
-
+			last_msg.put(msg.getIdm(), msg.toString());
+			this.next_ip = this.ip;
+			this.udp_nextPort = this.udp_listenPort;
+			this.connected = false;
 		}
 
 		if(last_msg.containsKey(msg.getIdm()) == false){
@@ -269,14 +294,16 @@ public class Machine implements Runnable{
 		Message msg = new Message(st);
 
 		if(msg.getPrefix() == PrefixMsg.DOWN){
-			this.stop();
+			this.next_ip = ip;
+			this.udp_nextPort = udp_listenPort;
+			this.connected = false;
 		}
 	}
 
 	public void udp_sendTest() throws IOException{
 		Message test = new Message();
 		test.setPrefix(PrefixMsg.TEST);
-		test.setIdm((int) (new Date().getTime()/1000));
+		test.setIdm();
 		test.setIp_diff(ip_multdif);
 		test.setPort_diff(multdif_port);
 
@@ -322,6 +349,14 @@ public class Machine implements Runnable{
 			diff_sendDown();
 			e.printStackTrace();
 		}
+	}
+
+	public void udp_sendMsg(Message msg) throws IOException{
+		System.out.println("  > "+this.ident+" send : "+msg);	
+
+		InetSocketAddress isa = new InetSocketAddress(next_ip, udp_nextPort);
+		DatagramPacket paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+		dso.send(paquet);	
 	}
 
 	public void diff_sendDown() throws IOException{
