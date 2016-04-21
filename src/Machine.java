@@ -306,7 +306,7 @@ public class Machine implements Runnable{
 
 		// Ajout dans les logs
 		toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
-			isa.getHostName(), isa.getPort());
+			isa.getHostAddress(), isa.getPort());
 
 		Message msg = new Message(st);
 		//System.out.println("  > "+this.ident +" read : "+ msg);
