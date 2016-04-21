@@ -154,15 +154,15 @@ public class Machine implements Runnable{
 						toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
 							isa.getAddress().getHostAddress(), isa.getPort());
 
-						// Interpretation du message
 						Message msg = new Message(st);
-						udp_readMessage(msg);
-
+						
 						// Renvoi du message s'il n'a pas fait le tour
-						if( (last_msg.containsKey(msg.getIdm()) == false) && (udp_connected == true)){
+						if(last_msg.containsKey(msg.getIdm()) == false){
 							isa = new InetSocketAddress(next_ip, udp_nextPort);
 							paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
 							dso.send(paquet);	
+
+							udp_readMessage(msg);
 						}
 						else{
 							last_msg.remove(msg.getIdm());
@@ -307,8 +307,7 @@ public class Machine implements Runnable{
 			case APPL:
 			break;
 			case WHOS:
-				//if(last_msg.containsKey(msg.getIdm()) == false)
-					//udp_sendMsg(ProtocoleToken.MEMB);
+				udp_sendMsg(ProtocoleToken.MEMB);
 			break;
 			case MEMB:
 			break;
