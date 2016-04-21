@@ -67,7 +67,7 @@ public class MachineSA{
    * Affiche une nouvelle ligne pour la prochaine commande
    */
   public static void display_prompt(){
-      System.out.print("[c]Connect [d]Disconnect [l]Logs [t]Test [q]Quit : ");
+      System.out.print("[c]Connect [d]Disconnect [l]Logs [t]Test \n[i]Info [q]Quit : ");
   }
   
   /**
@@ -123,6 +123,16 @@ public class MachineSA{
       }catch (Exception e){
     		e.printStackTrace();
     	}
+    }
+    else if(argv.get(0).equals("i")){
+    	System.out.println("");
+    	System.out.println("  | Machine ID : "+m.getIdent());
+    	System.out.println("  | IP : "+m.getIp());
+    	System.out.println("  | TCP : "+m.getPortTCP()+" | UDP : "+m.getPortUDP());
+    	System.out.println("  | IP multicast : "+m.getIp_diff());
+    	System.out.println("  | UDP multicast : "+m.getPort_diff());
+    	System.out.println("  | State : "+ ((m.isConnected()) ? " <-> Connected to "+m.getIp_succ()+":"+m.getPort_succ() : " <x> Deconnected") );
+    	System.out.println("");
     }
     else if(argv.get(0).equals("q")){
     	m.stop();

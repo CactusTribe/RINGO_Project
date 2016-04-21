@@ -338,6 +338,9 @@ public class Machine implements Runnable{
 
 				this.next_ip = msg.getIp_succ();
 				this.udp_nextPort = msg.getPort_succ();
+
+				if(this.ip.equals(this.next_ip) && this.udp_listenPort == this.udp_nextPort)
+					this.connected = false;
 			}
 
 		}
@@ -557,11 +560,43 @@ public class Machine implements Runnable{
 	}
 
 	/**
+   * Renvoi le port diff
+   * @return multdif_port
+   */
+	public short getPort_diff(){
+		return this.multdif_port;
+	}
+
+	/**
+   * Renvoi le port succ
+   * @return udp_nextPort
+   */
+	public short getPort_succ(){
+		return this.udp_nextPort;
+	}
+
+	/**
    * Renvoi l'ip
    * @return ip
    */
 	public String getIp(){
 		return this.ip;
+	}
+
+	/**
+   * Renvoi l'ip_succ
+   * @return next_ip
+   */
+	public String getIp_succ(){
+		return this.next_ip;
+	}
+
+	/**
+   * Renvoi l'ip_diff
+   * @return ip_multdif
+   */
+	public String getIp_diff(){
+		return this.ip_multdif;
 	}
 
 	/**
