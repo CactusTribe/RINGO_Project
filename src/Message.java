@@ -46,45 +46,47 @@ public class Message{
 
 			this.prefix = ProtocoleToken.valueOf(argv.get(0));
 
-			if(prefix == ProtocoleToken.WELC){
-				this.ip = argv.get(1);
-				this.ip_diff = argv.get(3);
-				this.port = (short)Integer.parseInt(argv.get(2));
-				this.port_diff = (short)Integer.parseInt(argv.get(4));
-			}
-			else if(prefix == ProtocoleToken.NEWC){
-				this.ip = argv.get(1);
-				this.port = (short)Integer.parseInt(argv.get(2));
-			}
-			else if(prefix == ProtocoleToken.ACKC){
-			}
-			else if(prefix == ProtocoleToken.APPL){
-				this.idm = Integer.parseInt(argv.get(1));
-				this.id_app = Integer.parseInt(argv.get(2));
-				this.message_app = argv.get(3);
-			}
-			else if(prefix == ProtocoleToken.TEST){
-				this.idm = Integer.parseInt(argv.get(1));
-				this.ip_diff = argv.get(2);
-				this.port_diff = (short)Integer.parseInt(argv.get(3));
-			}
-			else if(prefix == ProtocoleToken.DOWN){
-			}
-			else if(prefix == ProtocoleToken.WHOS){
-				this.idm = Integer.parseInt(argv.get(1));
-			}
-			else if(prefix == ProtocoleToken.MEMB){
-				this.idm = Integer.parseInt(argv.get(1));
-			}
-			else if(prefix == ProtocoleToken.GBYE){
-				this.idm = Integer.parseInt(argv.get(1));
-				this.ip = argv.get(2);
-				this.port = (short)Integer.parseInt(argv.get(3));
-				this.ip_succ = argv.get(4);
-				this.port_succ = (short)Integer.parseInt(argv.get(5));
-			}
-			else if(prefix == ProtocoleToken.EYBG){
-				this.idm = Integer.parseInt(argv.get(1));
+			switch(prefix){
+				case WELC:
+					this.ip = argv.get(1);
+					this.ip_diff = argv.get(3);
+					this.port = (short)Integer.parseInt(argv.get(2));
+					this.port_diff = (short)Integer.parseInt(argv.get(4));
+				break;
+				case NEWC:
+					this.ip = argv.get(1);
+					this.port = (short)Integer.parseInt(argv.get(2));
+				break;
+				case ACKC:
+				break;
+				case APPL:
+					this.idm = Integer.parseInt(argv.get(1));
+					this.id_app = Integer.parseInt(argv.get(2));
+					this.message_app = argv.get(3);
+				break;
+				case TEST:
+					this.idm = Integer.parseInt(argv.get(1));
+					this.ip_diff = argv.get(2);
+					this.port_diff = (short)Integer.parseInt(argv.get(3));
+				break;
+				case DOWN:
+				break;
+				case WHOS:
+					this.idm = Integer.parseInt(argv.get(1));
+				break;
+				case MEMB:
+					this.idm = Integer.parseInt(argv.get(1));
+				break;
+				case GBYE:
+					this.idm = Integer.parseInt(argv.get(1));
+					this.ip = argv.get(2);
+					this.port = (short)Integer.parseInt(argv.get(3));
+					this.ip_succ = argv.get(4);
+					this.port_succ = (short)Integer.parseInt(argv.get(5));
+				break;
+				case EYBG:
+					this.idm = Integer.parseInt(argv.get(1));
+				break;
 			}
 		}
 	}
@@ -96,43 +98,45 @@ public class Message{
 	public String toString(){
 		String mess = "";
 
-		if(prefix == ProtocoleToken.WELC){
-			mess = String.format("%s %s %04d %s %04d\n",
-				prefix,ip,port,ip_diff,port_diff);
-		}
-		else if(prefix == ProtocoleToken.NEWC){
-			mess = String.format("%s %s %04d\n",
-				prefix,ip,port);
-		}
-		else if(prefix == ProtocoleToken.ACKC){
-			mess = String.format("%s\n",prefix);
-		}
-		else if(prefix == ProtocoleToken.APPL){
-			mess = String.format("%s %08d %08d %s\n",
-				prefix,idm,id_app,message_app);
-		}
-		else if(prefix == ProtocoleToken.TEST){
-			mess = String.format("%s %08d %s %04d\n",
-				prefix,idm,ip_diff,port_diff);
-		}
-		else if(prefix == ProtocoleToken.DOWN){
-			mess = String.format("%s\n", prefix);
-		}
-		else if(prefix == ProtocoleToken.WHOS){
-			mess = String.format("%s %08d\n", 
-				prefix, idm);
-		}
-		else if(prefix == ProtocoleToken.MEMB){
-			mess = String.format("%s %08d\n", 
-				prefix, idm);
-		}
-		else if(prefix == ProtocoleToken.GBYE){
-			mess = String.format("%s %08d %s %04d %s %04d\n", 
-				prefix, idm, ip, port, ip_succ, port_succ);
-		}
-		else if(prefix == ProtocoleToken.EYBG){
-			mess = String.format("%s %08d\n", 
-				prefix, idm);
+		switch(prefix){
+			case WELC:
+				mess = String.format("%s %s %04d %s %04d\n",
+					prefix,ip,port,ip_diff,port_diff);
+			break;
+			case NEWC:
+				mess = String.format("%s %s %04d\n",
+					prefix,ip,port);
+			break;
+			case ACKC:
+				mess = String.format("%s\n",prefix);
+			break;
+			case APPL:
+				mess = String.format("%s %08d %08d %s\n",
+					prefix,idm,id_app,message_app);
+			break;
+			case TEST:
+				mess = String.format("%s %08d %s %04d\n",
+					prefix,idm,ip_diff,port_diff);
+			break;
+			case DOWN:
+				mess = String.format("%s\n", prefix);
+			break;
+			case WHOS:
+				mess = String.format("%s %08d\n", 
+					prefix, idm);
+			break;
+			case MEMB:
+				mess = String.format("%s %08d\n", 
+					prefix, idm);
+			break;
+			case GBYE:
+				mess = String.format("%s %08d %s %04d %s %04d\n", 
+					prefix, idm, ip, port, ip_succ, port_succ);
+			break;
+			case EYBG:
+				mess = String.format("%s %08d\n", 
+					prefix, idm);
+			break;
 		}
 
 		return mess;
