@@ -10,6 +10,7 @@ public class Message{
 
 	// Champs du message
 	private ProtocoleToken prefix = null;
+	private String id = "";
 	private String ip = "";
 	private String ip_succ = "";
 	private String ip_diff = "";
@@ -19,7 +20,6 @@ public class Message{
 	private int idm = 0;
 	private int id_trans = 0;
 	private int id_app = 0;
-	private int id = 0;
 	private short size_mess = 0;
 	private short size_nom = 0;
 	private int num_mess = 0;
@@ -76,6 +76,9 @@ public class Message{
 				break;
 				case MEMB:
 					this.idm = Integer.parseInt(argv.get(1));
+					this.id = argv.get(2);
+					this.ip = argv.get(3);
+					this.port = (short)Integer.parseInt(argv.get(4));
 				break;
 				case GBYE:
 					this.idm = Integer.parseInt(argv.get(1));
@@ -126,8 +129,8 @@ public class Message{
 					prefix, idm);
 			break;
 			case MEMB:
-				mess = String.format("%s %08d\n", 
-					prefix, idm);
+				mess = String.format("%s %08d %s %s %04d\n", 
+					prefix, idm, id, ip, port);
 			break;
 			case GBYE:
 				mess = String.format("%s %08d %s %04d %s %04d\n", 
@@ -177,6 +180,14 @@ public class Message{
 	 */
 	public void setPrefix(ProtocoleToken pref){
 		this.prefix = pref;
+	}
+
+	/**
+	 * Modifie l'ID
+	 * @param id Nouvel id
+	 */
+	public void setId(String id){
+		this.id = id;
 	}
 
 	/**

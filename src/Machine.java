@@ -34,7 +34,7 @@ public class Machine implements Runnable{
 
 	private Thread timerTest; // Boucle du timer
 	private long start_time; // Premiere mesure du temps
-	private int delay = 5000; // Interval de temps pour le TEST en ms
+	private int delay = 3000; // Interval de temps pour le TEST en ms
 	private int last_idm_test; // L'id du dernier message TEST envoyé
 
 	// Entrées / Sorties
@@ -159,7 +159,7 @@ public class Machine implements Runnable{
 						udp_readMessage(msg);
 
 						// Renvoi du message s'il n'a pas fait le tour
-						if(last_msg.containsKey(msg.getIdm()) == false){
+						if( (last_msg.containsKey(msg.getIdm()) == false) && (udp_connected == true)){
 							isa = new InetSocketAddress(next_ip, udp_nextPort);
 							paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
 							dso.send(paquet);	
@@ -192,7 +192,7 @@ public class Machine implements Runnable{
 						InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
 
 						// Ajout dans les logs
-						toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
+						toLogs(st, ProtocoleToken.DIFF, ProtocoleToken.RECEIVED, 
 							isa.getHostName(), isa.getPort());
 
 						// Interpretation du message
@@ -307,6 +307,8 @@ public class Machine implements Runnable{
 			case APPL:
 			break;
 			case WHOS:
+				//if(last_msg.containsKey(msg.getIdm()) == false)
+					//udp_sendMsg(ProtocoleToken.MEMB);
 			break;
 			case MEMB:
 			break;
@@ -341,9 +343,9 @@ public class Machine implements Runnable{
 		// Comportements définis en fonction du prefixe
 		switch(msg.getPrefix()){
 			case DOWN:
+				this.udp_connected = false;
 				this.next_ip = ip;
 				this.udp_nextPort = udp_listenPort;
-				this.udp_connected = false;
 			break;
 		}
 	}
@@ -419,6 +421,21 @@ public class Machine implements Runnable{
 				msg.setPrefix(ProtocoleToken.EYBG);
 				msg.setIdm();
 			break;
+
+			case WHOS:
+				msg = new Message();
+				msg.setPrefix(ProtocoleToken.WHOS);
+				msg.setIdm();
+			break;
+
+			case MEMB:
+				msg = new Message();
+				msg.setPrefix(ProtocoleToken.MEMB);
+				msg.setIdm();
+				msg.setId(this.ident);
+				msg.setIp(this.ip);
+				msg.setPort(this.udp_listenPort);
+			break;
 		}
 
 		if(msg != null){
@@ -452,14 +469,19 @@ public class Machine implements Runnable{
 		}
 
 		if(msg != null){
-			// On ajoute le message dans l'historique des envois
-			last_msg.put(msg.getIdm(), msg.toString());
-
 			// Envoi du message
 			InetSocketAddress isa = new InetSocketAddress(ip_multdif, multdif_port);
 			DatagramPacket paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
 			dso.send(paquet);				
 		}
+	}
+
+	/**
+   * Méthode permetant d'envoyer un WHOS
+   * @throws IOException Lance une exception en cas de problème
+   */
+	public void whosRing() throws IOException{
+		udp_sendMsg(ProtocoleToken.WHOS);
 	}
 
 	/**
@@ -472,40 +494,31 @@ public class Machine implements Runnable{
 
 	/**
    * Lance une procédure de TEST via UDP
-   * @throws IOException Lance une exception en cas de problème
+   * @throws Exception Lance une exception en cas de problème
    */
-	public void testRing() throws IOException{
-		try{
-			udp_sendMsg(ProtocoleToken.TEST);
+	public void testRing() throws Exception{
 
-			// Début du timer de la procédure de TEST
-			start_time = System.currentTimeMillis();
-			while(true){
-				if(System.currentTimeMillis() - start_time < delay){
+		udp_sendMsg(ProtocoleToken.TEST);
 
-					if(last_msg.containsKey(last_idm_test) == false){
-						System.out.println(" -> Structure is correct.");
-						break;
-					}
+		// Début du timer de la procédure de TEST
+		start_time = System.currentTimeMillis();
+		while(true){
+			if(System.currentTimeMillis() - start_time < delay){
+
+				if(last_msg.containsKey(last_idm_test) == false){
+					System.out.println("\n -> Structure is correct.\n");
+					break;
 				}
-				else{
-					if(last_msg.containsKey(last_idm_test) == true){
-						System.out.println(" -> Structure is broken. [DOWN] sent on multicast.");
-						diff_sendMsg(ProtocoleToken.DOWN);
-						last_msg.remove(last_idm_test);
-						break;
-					}	
-					else{
-						System.out.println(" -> Structure is correct.");
-						break;
-					}
-				}
-				Thread.sleep(1);
 			}
-
-		}catch (Exception e){
-			System.out.println(" -> Structure is broken. [DOWN] sent on multicast.");
-			diff_sendMsg(ProtocoleToken.DOWN);
+			else{
+				if(last_msg.containsKey(last_idm_test) == true){
+					System.out.println("\n -> Structure is broken. [DOWN] sent on multicast.\n");
+					diff_sendMsg(ProtocoleToken.DOWN);
+					last_msg.remove(last_idm_test);
+					break;
+				}
+			}
+			Thread.sleep(1);
 		}
 	}
 

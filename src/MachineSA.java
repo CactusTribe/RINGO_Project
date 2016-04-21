@@ -67,7 +67,7 @@ public class MachineSA{
    * Affiche une nouvelle ligne pour la prochaine commande
    */
   public static void display_prompt(){
-      System.out.print("[c]Connect [d]Disconnect [l]Logs [t]Test \n[i]Info [q]Quit : ");
+      System.out.print("[c]Connect [d]Disconnect [l]Logs [t]Test \n[w]Who [i]Info [q]Quit : ");
   }
   
   /**
@@ -97,7 +97,7 @@ public class MachineSA{
 			System.exit(0);
     }  
     else if(argv.get(0).equals("c")){
-    	if(argv.size() >= 2)
+    	if(argv.size() > 2)
     		m.tcp_connectTo(argv.get(1), (short)Integer.parseInt(argv.get(2)));
     	else
     		System.out.println("Usage: c <ip> <tcp_port> (Connect machine to another in TCP)");
@@ -120,6 +120,13 @@ public class MachineSA{
     else if(argv.get(0).equals("t")){
     	try{
       	m.testRing();
+      }catch (Exception e){
+    		e.printStackTrace();
+    	}
+    }
+    else if(argv.get(0).equals("w")){
+    	try{
+      	m.whosRing();
       }catch (Exception e){
     		e.printStackTrace();
     	}

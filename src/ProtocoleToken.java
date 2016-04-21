@@ -21,6 +21,7 @@ public enum ProtocoleToken{
 
 	TCP("TCP"),
 	UDP("UDP"),
+	DIFF("DIFF"),
 	RECEIVED("RECEIVED"),
 	SENT("SENT");
 

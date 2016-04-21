@@ -55,7 +55,7 @@ public class RINGO_Project{
    * Affiche une nouvelle ligne pour la prochaine commande
    */
   public static void display_prompt(){
-      System.out.print("[a]Add [r]Remove [c]Connect [d]Disconnect\n[l]Logs [w]Write [t]Test [s]Stats [q]Quit : ");
+      System.out.print("[a]Add [r]Remove [c]Connect [d]Disconnect\n[l]Logs [W]Write [t]Test [w]Who [s]Stats [q]Quit : ");
   }
   
   /**
@@ -100,11 +100,14 @@ public class RINGO_Project{
     else if(argv.get(0).equals("l")){
     	printLogs();
     }
-    else if(argv.get(0).equals("w")){
+    else if(argv.get(0).equals("W")){
       writeMessage();
     }
     else if(argv.get(0).equals("t")){
       testRing();
+    }
+    else if(argv.get(0).equals("w")){
+      whosRing();
     }
     else if(argv.get(0).equals("s")){
       printStats();
@@ -324,6 +327,29 @@ public class RINGO_Project{
 				
 			}catch (Exception e){
 				System.out.println("Usage: t <machine> (Send TEST into the ring)");
+			}
+		}	
+	}
+
+	/**
+   * Lance un WHOS à partir du point donné en argument
+   */
+	public static void whosRing(){
+		if(argv.size() <= 1)
+			System.out.println("Usage: w <machine> (Send WHOS into the ring)");
+		else{
+			try{
+				int m1 = Integer.parseInt(argv.get(1));
+
+				if(m1 < machines.size()){
+					machines.get(m1).whosRing();
+				}
+				else
+					System.out.println("Error : machine doesn't exist.");
+
+				
+			}catch (Exception e){
+				System.out.println("Usage: w <machine> (Send WHOS into the ring)");
 			}
 		}	
 	}
