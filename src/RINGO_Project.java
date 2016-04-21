@@ -213,7 +213,7 @@ public class RINGO_Project{
 			Machine m = new Machine(ip, tcp_port, udp_port, multdif_port);
 			machines.add(m);
 			(new Thread(m)).start();
-			System.out.println(" -> New machine "+m.getIdent()+" run at "+ InetAddress.getLocalHost().getHostAddress() + " UDP(" + m.getPortUDP()+") TCP("+m.getPortTCP()+")");
+			System.out.println(" -> New machine "+m.getIdent()+" run at "+ m.getIp() + " TCP("+m.getPortTCP()+") UDP(" + m.getPortUDP()+")");
 		}catch (Exception e){
 			System.out.println(e);
 		}

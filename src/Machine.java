@@ -92,9 +92,25 @@ public class Machine implements Runnable{
 		this.mso.joinGroup(InetAddress.getByName(ip_multdif));
 		this.tcp_socket = new ServerSocket(tcp_listenPort);
 
-		this.ip = InetAddress.getLocalHost().getHostAddress();
-		this.next_ip = ip;
+		// Recherche de l'ip 192.x.x.x (Nécessaire pour linux)
+		Enumeration en = NetworkInterface.getNetworkInterfaces();
+		while(en.hasMoreElements()){
+	    NetworkInterface ni=(NetworkInterface) en.nextElement();
+	    Enumeration ee = ni.getInetAddresses();
 
+	    while(ee.hasMoreElements()) {
+        InetAddress ia= (InetAddress) ee.nextElement();
+        if(ia.getHostAddress().matches("192.168.1.[0-9]*")){
+        	this.ip = ia.getHostAddress();
+        	break;
+        }
+	    }
+
+	    if(!this.ip.equals(""))
+	    	break;
+		 }
+
+		this.next_ip = ip;
 
 		/**
 	   * Thread d'écoute multicast
@@ -226,7 +242,7 @@ public class Machine implements Runnable{
 
 			// Ajout de l'action dans les logs
 			toLogs(msg.toString(), ProtocoleToken.TCP, ProtocoleToken.RECEIVED,
-				ia.getHostName(), socket.getPort());
+				ia.getHostAddress(), socket.getPort());
 
 			// Comportements définis en fonction du prefixe
 			if(msg.getPrefix() == ProtocoleToken.WELC){
