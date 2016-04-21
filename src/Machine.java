@@ -22,7 +22,10 @@ public class Machine implements Runnable{
 	private short tcp_listenPort;
 	private short udp_nextPort;
 	private short multdif_port;
-	private boolean connected;
+
+	// Status
+	private boolean udp_connected;
+	private boolean tcp_connected;
 	
 	// Threads d'écoutes
 	private Thread udp_listening;
@@ -46,30 +49,6 @@ public class Machine implements Runnable{
 	// Historique des recus
 	private LinkedList<String> logs = new LinkedList<String>();
 
-
-	/**
-   * Constructeur par defaut
-   */
-	public Machine(){
-		this.ident = getRandomIdent();
-		this.ip_multdif = null;
-		this.tcp_listenPort = 0;
-		this.udp_listenPort = 0;
-		this.udp_nextPort = 0;
-		this.multdif_port = 0;
-		this.last_msg = new Hashtable();
-
-		try{
-			this.tcp_socket = new ServerSocket(5900);
-			this.ip = InetAddress.getLocalHost().getHostAddress();
-			this.next_ip = ip;
-		}catch(Exception e){
-			e.printStackTrace();
-		}
-
-		describeMe();
-	}
-
 	/**
    * Constructeur
    * @param ip_multdif Adresse IP de multicast
@@ -79,6 +58,7 @@ public class Machine implements Runnable{
 	 * @throws IOException Lance une exception en cas de problème
    */
 	public Machine(String ip_multdif, short tcp_listenPort, short udp_listenPort, short multdif_port) throws Exception{
+
 		this.ident = getRandomIdent();
 		this.ip_multdif = ip_multdif;
 		this.tcp_listenPort = tcp_listenPort;
@@ -105,7 +85,6 @@ public class Machine implements Runnable{
         	break;
         }
 	    }
-
 	    if(!this.ip.equals(""))
 	    	break;
 		 }
@@ -113,13 +92,41 @@ public class Machine implements Runnable{
 		this.next_ip = ip;
 
 		/**
-	   * Thread d'écoute multicast
+	   * Thread d'écoute TCP
 	   */
-		diff_listening = new Thread(new Runnable() {
+		tcp_listening = new Thread(new Runnable() {
 			public void run(){
+
 				while(true){
 					try{
-						diff_readMessages();
+
+						Socket socket = tcp_socket.accept();
+						InetAddress ia = socket.getInetAddress();
+						tcp_connected = true;
+
+						pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+						br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+						
+						tcp_sendMsg(ProtocoleToken.WELC);
+
+						// Lecture des messages entrant
+						while(tcp_connected){
+
+							String st_mess = br.readLine();
+							Message msg = new Message(st_mess);
+							
+							// Ajout de l'action dans les logs
+							toLogs(msg.toString(), ProtocoleToken.TCP, ProtocoleToken.RECEIVED,
+								ia.getHostAddress(), socket.getPort());
+
+							// Interpretation du message
+							tcp_readMessage(msg);
+						}
+
+						br.close();
+						pw.close();
+						socket.close();
+
 					}catch (Exception e){
 						break;
 					}
@@ -134,7 +141,33 @@ public class Machine implements Runnable{
 			public void run(){
 				while(true){
 					try{
-						udp_readMessages();
+
+						// Attente d'un paquet sur le port UDP
+						byte[] data = new byte[512];
+						DatagramPacket paquet = new DatagramPacket(data, data.length);
+						dso.receive(paquet);
+
+						String st = new String(paquet.getData(), 0, paquet.getLength());
+						InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
+
+						// Ajout dans les logs
+						toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
+							isa.getAddress().getHostAddress(), isa.getPort());
+
+						// Interpretation du message
+						Message msg = new Message(st);
+						udp_readMessage(msg);
+
+						// Renvoi du message s'il n'a pas fait le tour
+						if(last_msg.containsKey(msg.getIdm()) == false){
+							isa = new InetSocketAddress(next_ip, udp_nextPort);
+							paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+							dso.send(paquet);	
+						}
+						else{
+							last_msg.remove(msg.getIdm());
+						}
+
 					}catch (Exception e){
 						break;
 					}
@@ -143,31 +176,28 @@ public class Machine implements Runnable{
 		});
 
 		/**
-	   * Thread d'écoute TCP
+	   * Thread d'écoute multicast
 	   */
-		tcp_listening = new Thread(new Runnable() {
+		diff_listening = new Thread(new Runnable() {
 			public void run(){
-
 				while(true){
 					try{
 
-						Socket socket = tcp_socket.accept();
-						pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+						// Attente d'un paquet sur le port UDP multicast
+						byte[] data = new byte[512];
+						DatagramPacket paquet = new DatagramPacket(data, data.length);
+						mso.receive(paquet);
 
-						Message mess = new Message();
-						mess.setPrefix(ProtocoleToken.WELC);
-						mess.setIp(next_ip);
-						mess.setIp_diff(ip_multdif);
-						mess.setPort((short)udp_nextPort);
-						mess.setPort_diff((short)multdif_port);
+						String st = new String(paquet.getData(), 0, paquet.getLength());
+						InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
 
-						pw.print(mess.toString());
-						pw.flush();
+						// Ajout dans les logs
+						toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
+							isa.getHostName(), isa.getPort());
 
-						tcp_readMessages(socket);
-					
-						pw.close();
-						socket.close();
+						// Interpretation du message
+						Message msg = new Message(st);
+						diff_readMessage(msg);
 
 					}catch (Exception e){
 						break;
@@ -175,7 +205,6 @@ public class Machine implements Runnable{
 				}
 			}
 		});
-
 	}
 
 	/**
@@ -197,8 +226,30 @@ public class Machine implements Runnable{
 
 			InetSocketAddress isa = new InetSocketAddress(InetAddress.getByName(ip), port);
 			Socket socket = new Socket();
+
 			socket.connect(isa, 1000);
-			tcp_readMessages(socket);
+			tcp_connected = true;
+
+			pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+			br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+			// Lecture des messages entrant
+			while(tcp_connected){
+
+				String st_mess = br.readLine();
+				Message msg = new Message(st_mess);
+				
+				// Ajout de l'action dans les logs
+				toLogs(msg.toString(), ProtocoleToken.TCP, ProtocoleToken.RECEIVED,
+					isa.getAddress().getHostAddress(), socket.getPort());
+
+				// Interpretation du message
+				tcp_readMessage(msg);
+			}
+
+			br.close();
+			pw.close();
+
 			socket.close();
 
 		}catch (Exception e){
@@ -207,46 +258,15 @@ public class Machine implements Runnable{
 	}
 
 	/**
-   * Méthode permetant de sortir de l'anneau
+   * Interpretation du message TCP
+   * @param msg Message 
    * @throws IOException Lance une exception en cas de problème
    */
-	public void leaveRing() throws IOException{
-		Message msg = new Message();
-		msg.setPrefix(ProtocoleToken.GBYE);
-		msg.setIdm();
-		msg.setIp(this.ip);
-		msg.setPort(this.udp_listenPort);
-		msg.setIp_succ(this.next_ip);
-		msg.setPort_succ(this.udp_nextPort);
+	public void tcp_readMessage(Message msg) throws IOException{
 
-		udp_sendMsg(msg);
-	}
-
-	/**
-   * Boucle de lecture des messages entrant TCP
-   * @param socket Socket à ecouter
-   * @throws IOException Lance une exception en cas de problème
-   */
-	public void tcp_readMessages(Socket socket) throws IOException{
-
-		InetAddress ia = socket.getInetAddress();
-		br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-
-		while(true){
-
-			// Lecture du message entrant
-			String st_mess = br.readLine();
-			Message msg = new Message(st_mess);
-			//System.out.println("  > "+this.ident +" read : "+ msg);
-
-			// Ajout de l'action dans les logs
-			toLogs(msg.toString(), ProtocoleToken.TCP, ProtocoleToken.RECEIVED,
-				ia.getHostAddress(), socket.getPort());
-
-			// Comportements définis en fonction du prefixe
-			if(msg.getPrefix() == ProtocoleToken.WELC){
-
+		// Comportements définis en fonction du prefixe
+		switch(msg.getPrefix()){
+			case WELC:
 				// Modification des informations
 				this.udp_nextPort = msg.getPort();
 				this.next_ip = msg.getIp();
@@ -255,164 +275,208 @@ public class Machine implements Runnable{
 				this.mso = new MulticastSocket(this.multdif_port);
 				this.mso.joinGroup(InetAddress.getByName(ip_multdif));
 
-				// Envoi de la réponse de connexion
-				Message rep = new Message();
-				rep.setPrefix(ProtocoleToken.NEWC);
-				rep.setIp(ip);
-				rep.setPort((short)udp_listenPort);
+				tcp_sendMsg(ProtocoleToken.NEWC);
+			break;
 
-				pw.print(rep.toString());
-				pw.flush();
-
-				this.connected = true;
-			}
-			else if(msg.getPrefix() == ProtocoleToken.NEWC){
-
+			case NEWC:
 				this.udp_nextPort = msg.getPort();
 				this.next_ip = msg.getIp();
 
-				// Confirmation de connexion
-				Message rep = new Message();
-				rep.setPrefix(ProtocoleToken.ACKC);
+				tcp_sendMsg(ProtocoleToken.ACKC);
+				this.udp_connected = true;
+				this.tcp_connected = false;
+			break;
 
-				pw.print(rep.toString());
-				pw.flush();
-
-				this.connected = true;
-				break;
-			}
-			else if(msg.getPrefix() == ProtocoleToken.ACKC){
-				break;
-			}
+			case ACKC:
+				this.udp_connected = true;
+				this.tcp_connected = false;
+			break;
 		}
-
-		pw.close();
-		br.close();
 	}
 
 	/**
-   * Lecture des messages entrants UDP
+   * Interpretation du message UDP
+   * @param msg Message 
    * @throws IOException Lance une exception en cas de problème
    */
-	public void udp_readMessages() throws IOException{
+	public void udp_readMessage(Message msg) throws IOException{
 
-		// Attente d'un paquet sur le port UDP
-		byte[] data = new byte[512];
-		DatagramPacket paquet = new DatagramPacket(data, data.length);
-		dso.receive(paquet);
+		switch(msg.getPrefix()){
+			case TEST:
+			break;
+			case APPL:
+			break;
+			case WHOS:
+			break;
+			case MEMB:
+			break;
+			case GBYE:
+				if(msg.getIp().equals(this.next_ip) && msg.getPort() == this.udp_nextPort){
 
-		String st = new String(paquet.getData(), 0, paquet.getLength());
-		InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
+					udp_sendMsg(ProtocoleToken.EYBG);
 
-		// Ajout dans les logs
-		toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
-			isa.getAddress().getHostAddress(), isa.getPort());
+					this.next_ip = msg.getIp_succ();
+					this.udp_nextPort = msg.getPort_succ();
 
-		Message msg = new Message(st);
-		//System.out.println("  > "+this.ident +" read : "+ msg);
-
-		// Interprétation du message
-		if(msg.getPrefix() == ProtocoleToken.TEST){
-
-		}
-		else if(msg.getPrefix() == ProtocoleToken.APPL){
-
-		}
-		else if(msg.getPrefix() == ProtocoleToken.WHOS){
-
-		}
-		else if(msg.getPrefix() == ProtocoleToken.MEMB){
-
-		}
-		else if(msg.getPrefix() == ProtocoleToken.GBYE){
-			if(msg.getIp().equals(this.next_ip) && msg.getPort() == this.udp_nextPort){
-				Message rep = new Message();
-				rep.setPrefix(ProtocoleToken.EYBG);
-				rep.setIdm();
-
-				isa = new InetSocketAddress(this.next_ip, this.udp_nextPort);
-				paquet = new DatagramPacket(rep.toString().getBytes(), rep.toString().length(), isa);
-				dso.send(paquet);	
-
+					if(this.ip.equals(this.next_ip) && this.udp_listenPort == this.udp_nextPort)
+						this.udp_connected = false;
+				}
+			break;
+			case EYBG:
 				last_msg.put(msg.getIdm(), msg.toString());
-
-				this.next_ip = msg.getIp_succ();
-				this.udp_nextPort = msg.getPort_succ();
-
-				if(this.ip.equals(this.next_ip) && this.udp_listenPort == this.udp_nextPort)
-					this.connected = false;
-			}
-
-		}
-		else if(msg.getPrefix() == ProtocoleToken.EYBG){
-			last_msg.put(msg.getIdm(), msg.toString());
-			this.next_ip = this.ip;
-			this.udp_nextPort = this.udp_listenPort;
-			this.connected = false;
-		}
-
-		if(last_msg.containsKey(msg.getIdm()) == false){
-			isa = new InetSocketAddress(next_ip, udp_nextPort);
-			paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
-			dso.send(paquet);	
-		}
-		else{
-			last_msg.remove(msg.getIdm());
+				this.next_ip = this.ip;
+				this.udp_nextPort = this.udp_listenPort;
+				this.udp_connected = false;
+			break;
 		}
 	}
 
 	/**
-   * Lecture des messages entrants UDP multicast
+   * Interpretation du message UDP multicast
+   * @param msg Message 
    * @throws IOException Lance une exception en cas de problème
    */
-	public void diff_readMessages() throws IOException{
+	public void diff_readMessage(Message msg) throws IOException{
 
-		// Attente d'un paquet sur le port UDP multicast
-		byte[] data = new byte[512];
-		DatagramPacket paquet = new DatagramPacket(data, data.length);
-		mso.receive(paquet);
-
-		String st = new String(paquet.getData(), 0, paquet.getLength());
-		InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
-
-		// Ajout dans les logs
-		toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
-			isa.getHostName(), isa.getPort());
-
-		Message msg = new Message(st);
-
-		// Interprétation du message
-		if(msg.getPrefix() == ProtocoleToken.DOWN){
-			this.next_ip = ip;
-			this.udp_nextPort = udp_listenPort;
-			this.connected = false;
+		// Comportements définis en fonction du prefixe
+		switch(msg.getPrefix()){
+			case DOWN:
+				this.next_ip = ip;
+				this.udp_nextPort = udp_listenPort;
+				this.udp_connected = false;
+			break;
 		}
+	}
+
+	/**
+   * Permet d'envoyer un message via TCP
+   * @param token Type de message à envoyer
+   * @throws IOException Lance une exception en cas de problème
+   */
+	public void tcp_sendMsg(ProtocoleToken token) throws IOException{
+		
+		Message msg = null; 
+
+		switch(token){
+			case WELC:
+				msg = new Message();
+				msg.setPrefix(ProtocoleToken.WELC);
+				msg.setIp(next_ip);
+				msg.setIp_diff(ip_multdif);
+				msg.setPort((short)udp_nextPort);
+				msg.setPort_diff((short)multdif_port);
+			break;
+			case NEWC:
+				msg = new Message();
+				msg.setPrefix(ProtocoleToken.NEWC);
+				msg.setIp(ip);
+				msg.setPort((short)udp_listenPort);
+			break;
+			case ACKC:
+				msg = new Message();
+				msg.setPrefix(ProtocoleToken.ACKC);
+			break;
+		}
+
+		if(msg != null){
+			pw.print(msg.toString());
+			pw.flush();
+		}
+	}
+
+	/**
+   * Permet d'envoyer un message via UDP
+   * @param token Type de message à envoyer
+   * @throws IOException Lance une exception en cas de problème
+   */
+	public void udp_sendMsg(ProtocoleToken token) throws IOException{
+		
+		Message msg = null; 
+
+		switch(token){
+
+			case TEST:
+				msg = new Message();
+				msg.setPrefix(ProtocoleToken.TEST);
+				msg.setIdm();
+				msg.setIp_diff(ip_multdif);
+				msg.setPort_diff(multdif_port);
+				last_idm_test = msg.getIdm();
+			break;
+
+			case GBYE:
+				msg = new Message();
+				msg.setPrefix(ProtocoleToken.GBYE);
+				msg.setIdm();
+				msg.setIp(this.ip);
+				msg.setPort(this.udp_listenPort);
+				msg.setIp_succ(this.next_ip);
+				msg.setPort_succ(this.udp_nextPort);
+			break;
+
+			case EYBG:
+				msg = new Message();
+				msg.setPrefix(ProtocoleToken.EYBG);
+				msg.setIdm();
+			break;
+		}
+
+		if(msg != null){
+			// On ajoute le message dans l'historique des envois
+			last_msg.put(msg.getIdm(), msg.toString());
+
+			// Envoi du message
+			InetSocketAddress isa = new InetSocketAddress(next_ip, udp_nextPort);
+			DatagramPacket paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+			dso.send(paquet);	
+
+			//System.out.println("");
+			//System.out.println("  > "+this.ident+" send : "+msg);
+		}
+	}
+
+	/**
+   * Envoi le message correspondant au token via UDP multicast
+   * @param token Type de message à envoyer
+   * @throws IOException Lance une exception en cas de problème
+   */
+	public void diff_sendMsg(ProtocoleToken token) throws IOException{
+
+		Message msg = null; 
+
+		switch(token){
+			case DOWN:
+				msg = new Message();
+				msg.setPrefix(ProtocoleToken.DOWN);
+			break;
+		}
+
+		if(msg != null){
+			// On ajoute le message dans l'historique des envois
+			last_msg.put(msg.getIdm(), msg.toString());
+
+			// Envoi du message
+			InetSocketAddress isa = new InetSocketAddress(ip_multdif, multdif_port);
+			DatagramPacket paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+			dso.send(paquet);				
+		}
+	}
+
+	/**
+   * Méthode permetant de sortir de l'anneau
+   * @throws IOException Lance une exception en cas de problème
+   */
+	public void leaveRing() throws IOException{
+		udp_sendMsg(ProtocoleToken.GBYE);
 	}
 
 	/**
    * Lance une procédure de TEST via UDP
    * @throws IOException Lance une exception en cas de problème
    */
-	public void udp_sendTest() throws IOException{
-		Message test = new Message();
-		test.setPrefix(ProtocoleToken.TEST);
-		test.setIdm();
-		test.setIp_diff(ip_multdif);
-		test.setPort_diff(multdif_port);
-
-		System.out.println("");
-		System.out.println("  > "+this.ident+" send : "+test);	
-
+	public void testRing() throws IOException{
 		try{
-
-			// Envoi du message de TEST
-			InetSocketAddress isa = new InetSocketAddress(next_ip, udp_nextPort);
-			DatagramPacket paquet = new DatagramPacket(test.toString().getBytes(), test.toString().length(), isa);
-			dso.send(paquet);	
-
-			// On ajoute le message dans l'historique des envois
-			last_msg.put(test.getIdm(), test.toString());
-			last_idm_test = test.getIdm();
+			udp_sendMsg(ProtocoleToken.TEST);
 
 			// Début du timer de la procédure de TEST
 			start_time = System.currentTimeMillis();
@@ -427,8 +491,8 @@ public class Machine implements Runnable{
 				else{
 					if(last_msg.containsKey(last_idm_test) == true){
 						System.out.println(" -> Structure is broken. [DOWN] sent on multicast.");
-						diff_sendDown();
-						last_msg.remove(test.getIdm());
+						diff_sendMsg(ProtocoleToken.DOWN);
+						last_msg.remove(last_idm_test);
 						break;
 					}	
 					else{
@@ -441,44 +505,10 @@ public class Machine implements Runnable{
 
 		}catch (Exception e){
 			System.out.println(" -> Structure is broken. [DOWN] sent on multicast.");
-			diff_sendDown();
-			e.printStackTrace();
+			diff_sendMsg(ProtocoleToken.DOWN);
 		}
 	}
 
-	/**
-   * Permet d'envoyer un message via UDP
-   * @param msg Message à envoyer
-   * @throws IOException Lance une exception en cas de problème
-   */
-	public void udp_sendMsg(Message msg) throws IOException{
-		System.out.println("  > "+this.ident+" send : "+msg);	
-
-		// On ajoute le message dans l'historique des envois
-		last_msg.put(msg.getIdm(), msg.toString());
-
-		// Envoi du message
-		InetSocketAddress isa = new InetSocketAddress(next_ip, udp_nextPort);
-		DatagramPacket paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
-		dso.send(paquet);	
-	}
-
-	/**
-   * Lance le message DOWN via UDP multicast
-   * @throws IOException Lance une exception en cas de problème
-   */
-	public void diff_sendDown() throws IOException{
-		Message dw = new Message();
-		dw.setPrefix(ProtocoleToken.DOWN);
-
-		// On ajoute le message dans l'historique des envois
-		last_msg.put(dw.getIdm(), dw.toString());
-
-		// Envoi du message
-		InetSocketAddress isa = new InetSocketAddress(ip_multdif, multdif_port);
-		DatagramPacket paquet = new DatagramPacket(dw.toString().getBytes(), dw.toString().length(), isa);
-		dso.send(paquet);	
-	}
 
 	/**
    * Inscrit un message dans les logs
@@ -506,6 +536,17 @@ public class Machine implements Runnable{
 	}
 
 	/**
+   * Fonction de transformation
+   * @return Représentation sous forme de string
+   */
+	public String toString(){
+		String m = String.format("%s [ %s | %s | %s | %d | %d | %d | %d ]",
+			ident, ip, ip_multdif, next_ip, tcp_listenPort, udp_listenPort, udp_nextPort, multdif_port);
+
+		return m;
+	}
+
+	/**
    * Renvoi un identifiant unique basé sur le timestamp depuis 1970
    * @return String random ident
    */
@@ -522,17 +563,6 @@ public class Machine implements Runnable{
    */
 	public LinkedList<String> getLogs(){
 		return this.logs;
-	}
-
-	/**
-   * Fonction de transformation
-   * @return Représentation sous forme de string
-   */
-	public String toString(){
-		String m = String.format("%s [ %s | %s | %s | %d | %d | %d | %d ]",
-			ident, ip, ip_multdif, next_ip, tcp_listenPort, udp_listenPort, udp_nextPort, multdif_port);
-
-		return m;
 	}
 
 	/**
@@ -600,11 +630,19 @@ public class Machine implements Runnable{
 	}
 
 	/**
-   * Renvoi l'état de connexion
-   * @return connected
+   * Renvoi l'état de connexion TCP
+   * @return tcp_connected
    */
-	public boolean isConnected(){
-		return this.connected;
+	public boolean tcp_isConnected(){
+		return this.tcp_connected;
+	}
+
+	/**
+   * Renvoi l'état de connexion UDP
+   * @return udp_connected
+   */
+	public boolean udp_isConnected(){
+		return this.udp_connected;
 	}
 
 	/**

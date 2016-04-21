@@ -127,7 +127,7 @@ public class RINGO_Project{
 		System.out.println("  |  N° - (state) IDENT [    HOST    |  IP_MULT  |    NEXT_IP   | TCP | UDP | NXT_UDP | MULT ]");
 		System.out.println("  |  -----------------------------------------------------------------------------------------");
 		for(int i=0; i<machines.size(); i++)
-			System.out.println("  |  "+i+" - ("+((machines.get(i).isConnected()) ? "C" : "A") +") "+machines.get(i));
+			System.out.println("  |  "+i+" - ("+((machines.get(i).udp_isConnected()) ? "C" : "A") +") "+machines.get(i));
 		System.out.println("  |");
 		System.out.println("  | Nb machines : "+machines.size());
 		System.out.println("\n");
@@ -260,7 +260,7 @@ public class RINGO_Project{
 
 				if(m1 < machines.size() && m2 < machines.size()){
 
-					if(machines.get(m1).isConnected() == false){
+					if(machines.get(m1).tcp_isConnected() == false){
 						System.out.println("");
 						machines.get(m1).tcp_connectTo(machines.get(m2).getIp(), machines.get(m2).getPortTCP());
 					}
@@ -288,7 +288,7 @@ public class RINGO_Project{
 				int m1 = Integer.parseInt(argv.get(1));
 
 				if(m1 < machines.size()){
-					if(machines.get(m1).isConnected() == true){
+					if(machines.get(m1).udp_isConnected() == true){
 						System.out.println("");
 						machines.get(m1).leaveRing();
 					}
@@ -316,7 +316,7 @@ public class RINGO_Project{
 				int m1 = Integer.parseInt(argv.get(1));
 
 				if(m1 < machines.size()){
-					machines.get(m1).udp_sendTest();
+					machines.get(m1).testRing();
 				}
 				else
 					System.out.println("Error : machine doesn't exist.");

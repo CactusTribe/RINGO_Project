@@ -119,7 +119,7 @@ public class MachineSA{
     }
     else if(argv.get(0).equals("t")){
     	try{
-      	m.udp_sendTest();
+      	m.testRing();
       }catch (Exception e){
     		e.printStackTrace();
     	}
@@ -131,7 +131,7 @@ public class MachineSA{
     	System.out.println("  | TCP : "+m.getPortTCP()+" | UDP : "+m.getPortUDP());
     	System.out.println("  | IP multicast : "+m.getIp_diff());
     	System.out.println("  | UDP multicast : "+m.getPort_diff());
-    	System.out.println("  | State : "+ ((m.isConnected()) ? " <-> Connected to "+m.getIp_succ()+":"+m.getPort_succ() : " <x> Deconnected") );
+    	System.out.println("  | State : "+ ((m.udp_isConnected()) ? " <-> Connected to "+m.getIp_succ()+":"+m.getPort_succ() : " <x> Deconnected") );
     	System.out.println("");
     }
     else if(argv.get(0).equals("q")){
