@@ -60,7 +60,7 @@ public class Machine implements Runnable{
 		this.last_msg = new Hashtable();
 
 		try{
-			this.tcp_socket = new ServerSocket(tcp_listenPort);
+			this.tcp_socket = new ServerSocket(5900);
 			this.ip = InetAddress.getLocalHost().getHostAddress();
 			this.next_ip = ip;
 		}catch(Exception e){
@@ -91,6 +91,7 @@ public class Machine implements Runnable{
 		this.mso = new MulticastSocket(this.multdif_port);
 		this.mso.joinGroup(InetAddress.getByName(ip_multdif));
 		this.tcp_socket = new ServerSocket(tcp_listenPort);
+
 		this.ip = InetAddress.getLocalHost().getHostAddress();
 		this.next_ip = ip;
 
@@ -178,7 +179,9 @@ public class Machine implements Runnable{
 	public void tcp_connectTo(String ip, short port){
 		try{
 
-			Socket socket = new Socket(ip, port);
+			InetSocketAddress isa = new InetSocketAddress(InetAddress.getByName(ip), port);
+			Socket socket = new Socket();
+			socket.connect(isa, 1000);
 			tcp_readMessages(socket);
 			socket.close();
 
