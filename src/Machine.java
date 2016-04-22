@@ -44,8 +44,8 @@ public class Machine implements Runnable{
 	private PrintWriter pw;
 	private BufferedReader br;
 
-	// Historique des envois
-	private Hashtable last_msg;
+	// Liste des messages en attente de reception
+	private Hashtable waiting_msg;
 	// Historique des recus
 	private LinkedList<String> logs = new LinkedList<String>();
 
@@ -65,7 +65,7 @@ public class Machine implements Runnable{
 		this.udp_listenPort = udp_listenPort;
 		this.udp_nextPort = udp_listenPort;
 		this.multdif_port = multdif_port;
-		this.last_msg = new Hashtable();
+		this.waiting_msg = new Hashtable();
 
 		this.dso = new DatagramSocket(this.udp_listenPort);
 		this.mso = new MulticastSocket(this.multdif_port);
@@ -155,17 +155,21 @@ public class Machine implements Runnable{
 							isa.getAddress().getHostAddress(), isa.getPort());
 
 						Message msg = new Message(st);
+
+						udp_readMessage(msg);
 						
 						// Renvoi du message s'il n'a pas fait le tour
-						if(last_msg.containsKey(msg.getIdm()) == false){
+						if(waiting_msg.containsKey(msg.getIdm()) == false){
+
+							waiting_msg.put(msg.getIdm(), msg.toString());
+
 							isa = new InetSocketAddress(next_ip, udp_nextPort);
 							paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
 							dso.send(paquet);	
-
-							udp_readMessage(msg);
+							
 						}
 						else{
-							last_msg.remove(msg.getIdm());
+							waiting_msg.remove(msg.getIdm());
 						}
 
 					}catch (Exception e){
@@ -324,7 +328,6 @@ public class Machine implements Runnable{
 				}
 			break;
 			case EYBG:
-				last_msg.put(msg.getIdm(), msg.toString());
 				this.next_ip = this.ip;
 				this.udp_nextPort = this.udp_listenPort;
 				this.udp_connected = false;
@@ -438,8 +441,8 @@ public class Machine implements Runnable{
 		}
 
 		if(msg != null){
-			// On ajoute le message dans l'historique des envois
-			last_msg.put(msg.getIdm(), msg.toString());
+			// On ajoute le message dans la liste des messages en attente de retour
+			waiting_msg.put(msg.getIdm(), msg.toString());
 
 			// Envoi du message
 			InetSocketAddress isa = new InetSocketAddress(next_ip, udp_nextPort);
@@ -504,16 +507,16 @@ public class Machine implements Runnable{
 		while(true){
 			if(System.currentTimeMillis() - start_time < delay){
 
-				if(last_msg.containsKey(last_idm_test) == false){
+				if(waiting_msg.containsKey(last_idm_test) == false){
 					System.out.println("\n -> Structure is correct.\n");
 					break;
 				}
 			}
 			else{
-				if(last_msg.containsKey(last_idm_test) == true){
+				if(waiting_msg.containsKey(last_idm_test) == true){
 					System.out.println("\n -> Structure is broken. [DOWN] sent on multicast.\n");
 					diff_sendMsg(ProtocoleToken.DOWN);
-					last_msg.remove(last_idm_test);
+					waiting_msg.remove(last_idm_test);
 					break;
 				}
 			}
@@ -559,14 +562,14 @@ public class Machine implements Runnable{
 	}
 
 	/**
-   * Renvoi un identifiant unique basé sur le timestamp depuis 1970
+   * Renvoi un identifiant unique basé sur le temps écoulé depuis 1970
    * @return String random ident
    */
 	private String getRandomIdent(){
 		Date date = new Date();
 		Timestamp time = new Timestamp(date.getTime());
 		int since1970 = time.hashCode();
-		return Integer.toString(since1970);
+		return Tools.intToStr8b(since1970);
 	}
 
 	/**

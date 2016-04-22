@@ -10,21 +10,28 @@ public class Message{
 
 	// Champs du message
 	private ProtocoleToken prefix = null;
-	private String id = "";
+
 	private String ip = "";
 	private String ip_succ = "";
 	private String ip_diff = "";
+
+	private String id = "";
+	private String id_app = "";
+
+	private long idm = 0;
+	private long id_trans = 0;
+
 	private short port = 0;
 	private short port_succ = 0;
 	private short port_diff = 0;
-	private int idm = 0;
-	private int id_trans = 0;
-	private int id_app = 0;
+	
 	private short size_mess = 0;
 	private short size_nom = 0;
+	private short size_content = 0;
+
 	private int num_mess = 0;
 	private int no_mess = 0;
-	private short size_content = 0;
+	
 	private String message_app = "";
 
 	/**
@@ -61,7 +68,7 @@ public class Message{
 				break;
 				case APPL:
 					this.idm = Integer.parseInt(argv.get(1));
-					this.id_app = Integer.parseInt(argv.get(2));
+					this.id_app = argv.get(2);
 					this.message_app = argv.get(3);
 				break;
 				case TEST:
@@ -104,41 +111,41 @@ public class Message{
 		switch(prefix){
 			case WELC:
 				mess = String.format("%s %s %04d %s %04d\n",
-					prefix,ip,port,ip_diff,port_diff);
+					prefix, ip, port, ip_diff, port_diff);
 			break;
 			case NEWC:
 				mess = String.format("%s %s %04d\n",
-					prefix,ip,port);
+					prefix, ip, port);
 			break;
 			case ACKC:
 				mess = String.format("%s\n",prefix);
 			break;
 			case APPL:
-				mess = String.format("%s %08d %08d %s\n",
-					prefix,idm,id_app,message_app);
+				mess = String.format("%s %s %s %s\n",
+					prefix, Tools.longToStr8b(idm), id_app, message_app);
 			break;
 			case TEST:
-				mess = String.format("%s %08d %s %04d\n",
-					prefix,idm,ip_diff,port_diff);
+				mess = String.format("%s %s %s %04d\n",
+					prefix, Tools.longToStr8b(idm), ip_diff, port_diff);
 			break;
 			case DOWN:
 				mess = String.format("%s\n", prefix);
 			break;
 			case WHOS:
-				mess = String.format("%s %08d\n", 
-					prefix, idm);
+				mess = String.format("%s %s\n", 
+					prefix, Tools.longToStr8b(idm));
 			break;
 			case MEMB:
-				mess = String.format("%s %08d %s %s %04d\n", 
-					prefix, idm, id, ip, port);
+				mess = String.format("%s %s %s %s %04d\n", 
+					prefix, Tools.longToStr8b(idm), id, ip, port);
 			break;
 			case GBYE:
-				mess = String.format("%s %08d %s %04d %s %04d\n", 
-					prefix, idm, ip, port, ip_succ, port_succ);
+				mess = String.format("%s %s %s %04d %s %04d\n", 
+					prefix, Tools.longToStr8b(idm), ip, port, ip_succ, port_succ);
 			break;
 			case EYBG:
-				mess = String.format("%s %08d\n", 
-					prefix, idm);
+				mess = String.format("%s %s\n", 
+					prefix, Tools.longToStr8b(idm));
 			break;
 		}
 
@@ -183,19 +190,11 @@ public class Message{
 	}
 
 	/**
-	 * Modifie l'ID
-	 * @param id Nouvel id
-	 */
-	public void setId(String id){
-		this.id = id;
-	}
-
-	/**
 	 * Modifie l'IP
 	 * @param ip Nouvelle ip
 	 */
 	public void setIp(String ip){
-		this.ip = ip;
+		this.ip = Tools.addZerosToIp(ip);
 	}
 
 	/**
@@ -203,7 +202,51 @@ public class Message{
 	 * @param ip Nouvelle ip
 	 */
 	public void setIp_succ(String ip){
-		this.ip_succ = ip;
+		this.ip_succ = Tools.addZerosToIp(ip);
+	}
+
+	/**
+	 * Modifie l'ip_diff
+	 * @param ip_diff Nouvelle ip
+	 */
+	public void setIp_diff(String ip_diff){
+		this.ip_diff = Tools.addZerosToIp(ip_diff);
+	}
+
+	/**
+	 * Modifie l'ID
+	 * @param id Nouvel id
+	 */
+	public void setId(String id){
+		if(id.length() > 8)
+			this.id = id.substring(0, 8);
+		else
+			this.id = id;
+	}
+
+	/**
+	 * Modifie l'id_app
+	 * @param id_app Nouvelle id_app
+	 */
+	public void setId_app(String id_app){
+		if(id_app.length() > 8)
+			this.id_app = id_app.substring(0, 8);
+		else
+			this.id_app = id_app;
+	}
+
+	/**
+	 * Donne la valeur courante du timestamp a idm
+	 */
+	public void setIdm(){
+		this.idm = (new Date().getTime());
+	}
+
+	/**
+	 * Donne la valeur courante du timestamp a id_trans
+	 */
+	public void setId_trans(){
+		this.id_trans = (new Date().getTime());
 	}
 
 	/**
@@ -223,14 +266,6 @@ public class Message{
 	}
 
 	/**
-	 * Modifie l'ip_diff
-	 * @param ip_diff Nouvelle ip
-	 */
-	public void setIp_diff(String ip_diff){
-		this.ip_diff = ip_diff;
-	}
-
-	/**
 	 * Modifie le port_diff
 	 * @param port_diff Nouveau port_diff
 	 */
@@ -238,12 +273,7 @@ public class Message{
 		this.port_diff = port_diff;
 	}
 
-	/**
-	 * Donne la valeur courante du timestamp
-	 */
-	public void setIdm(){
-		this.idm = (int) (new Date().getTime()/1000);
-	}
+
 
 	/**
 	 * Retourne le prefixe
@@ -258,7 +288,7 @@ public class Message{
 	 * @return ip
 	 */
 	public String getIp(){
-		return this.ip;
+		return Tools.removeZerosFromIp(this.ip);
 	}
 
 	/**
@@ -266,9 +296,48 @@ public class Message{
 	 * @return ip_succ
 	 */
 	public String getIp_succ(){
-		return this.ip_succ;
+		return Tools.removeZerosFromIp(this.ip_succ);
 	}
 
+	/**
+	 * Retourne l'ip_diff
+	 * @return ip_diff
+	 */
+	public String getIp_diff(){
+		return Tools.removeZerosFromIp(this.ip_diff);
+	}
+
+	/**
+	 * Retourne l'id
+	 * @return id
+	 */
+	public String getId(){
+		return this.id;
+	}
+
+	/**
+	 * Retourne l'id_app
+	 * @return id_app
+	 */
+	public String getId_app(){
+		return this.id_app;
+	}
+	
+	/**
+	 * Retourne l'idm
+	 * @return idm
+	 */
+	public int getIdm(){
+		return Integer.parseInt(Tools.longToStr8b(this.idm));
+	}
+
+	/**
+	 * Retourne l'id_trans
+	 * @return id_trans
+	 */
+	public int getId_trans(){
+		return Integer.parseInt(Tools.longToStr8b(this.id_trans));
+	}
 
 	/**
 	 * Retourne le port
@@ -287,14 +356,6 @@ public class Message{
 	}
 
 	/**
-	 * Retourne l'ip_diff
-	 * @return ip_diff
-	 */
-	public String getIp_diff(){
-		return this.ip_diff;
-	}
-
-	/**
 	 * Retourne le port_diff
 	 * @return port_diff
 	 */
@@ -302,13 +363,6 @@ public class Message{
 		return this.port_diff;
 	}
 
-	/**
-	 * Retourne l'idm
-	 * @return idm
-	 */
-	public int getIdm(){
-		return this.idm;
-	}
 }
 
 

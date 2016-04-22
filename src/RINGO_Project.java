@@ -179,7 +179,8 @@ public class RINGO_Project{
 
 		System.out.println("");
 		System.out.println("  *-----------* Add machine *-----------*");
-
+		System.out.println("  | - Press ENTER for default value.");
+		System.out.println("  |-------------------------------------");
 		System.out.print("  | IP diff : ");
 		ip = input.nextLine();
 		if(ip.equals("")) ip = "225.1.2.4";
