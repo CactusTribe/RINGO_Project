@@ -18,6 +18,7 @@ public enum ProtocoleToken{
 	DOWN("DOWN"),
 	DUPL("DUPL"),
 	ACKD("ACKD"),
+	NOTC("NOTC"),
 
 	TCP("TCP"),
 	UDP("UDP"),

@@ -23,9 +23,18 @@ public class Machine implements Runnable{
 	private short udp_nextPort;
 	private short multdif_port;
 
+	// Informations de connexion du deuxieme anneau
+	private String ip_multdif_dup;
+	private String next_ip_dup;
+	private short udp_nextPort_dup;
+	private short multdif_port_dup;
+
 	// Status
 	private boolean udp_connected;
 	private boolean tcp_connected;
+
+	private boolean duplicator;
+	private boolean connectedToDuplicator;
 	
 	// Threads d'écoutes
 	private Thread udp_listening;
@@ -67,6 +76,11 @@ public class Machine implements Runnable{
 		this.multdif_port = multdif_port;
 		this.waiting_msg = new Hashtable();
 
+		this.udp_connected = false;
+		this.tcp_connected = false;
+		this.duplicator = false;
+		this.connectedToDuplicator = false;
+
 		this.dso = new DatagramSocket(this.udp_listenPort);
 		this.mso = new MulticastSocket(this.multdif_port);
 		this.mso.joinGroup(InetAddress.getByName(ip_multdif));
@@ -102,12 +116,18 @@ public class Machine implements Runnable{
 
 						Socket socket = tcp_socket.accept();
 						InetAddress ia = socket.getInetAddress();
-						tcp_connected = true;
 
 						pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 						br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 						
-						tcp_sendMsg(ProtocoleToken.WELC);
+						if(duplicator == false){
+							tcp_sendMsg(ProtocoleToken.WELC);
+							tcp_connected = true;
+						}
+						else{
+							tcp_sendMsg(ProtocoleToken.NOTC);
+							tcp_connected = false;
+						}
 
 						// Lecture des messages entrant
 						while(tcp_connected){
@@ -150,13 +170,12 @@ public class Machine implements Runnable{
 						String st = new String(paquet.getData(), 0, paquet.getLength());
 						InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
 
-						// Ajout dans les logs
-						toLogs(st, ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
-							isa.getAddress().getHostAddress(), isa.getPort());
-
 						Message msg = new Message(st);
-
 						udp_readMessage(msg);
+
+						// Ajout dans les logs
+						toLogs(msg.toString(), ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
+							isa.getAddress().getHostAddress(), isa.getPort());
 						
 						// Renvoi du message s'il n'a pas fait le tour
 						if(waiting_msg.containsKey(msg.getIdm()) == false){
@@ -166,11 +185,18 @@ public class Machine implements Runnable{
 							isa = new InetSocketAddress(next_ip, udp_nextPort);
 							paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
 							dso.send(paquet);	
+
+							if(isDuplicator()){
+								isa = new InetSocketAddress(next_ip_dup, udp_nextPort_dup);
+								paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+								dso.send(paquet);	
+							}
 							
 						}
 						else{
 							waiting_msg.remove(msg.getIdm());
 						}
+
 
 					}catch (Exception e){
 						break;
@@ -225,7 +251,7 @@ public class Machine implements Runnable{
    * @param ip IP de la machine distante
    * @param port Port de la machine distante
    */
-	public void tcp_connectTo(String ip, short port){
+	public void tcp_connectTo(String ip, short port, boolean duplication){
 		try{
 
 			InetSocketAddress isa = new InetSocketAddress(InetAddress.getByName(ip), port);
@@ -233,6 +259,9 @@ public class Machine implements Runnable{
 
 			socket.connect(isa, 1000);
 			tcp_connected = true;
+
+			if(duplication)
+				this.connectedToDuplicator = true;
 
 			pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 			br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -274,12 +303,17 @@ public class Machine implements Runnable{
 				// Modification des informations
 				this.udp_nextPort = msg.getPort();
 				this.next_ip = msg.getIp();
-				this.ip_multdif = msg.getIp_diff();
-				this.multdif_port = msg.getPort_diff();
-				this.mso = new MulticastSocket(this.multdif_port);
-				this.mso.joinGroup(InetAddress.getByName(ip_multdif));
 
-				tcp_sendMsg(ProtocoleToken.NEWC);
+				if(this.connectedToDuplicator){
+					tcp_sendMsg(ProtocoleToken.DUPL);
+				}
+				else{
+					this.ip_multdif = msg.getIp_diff();
+					this.multdif_port = msg.getPort_diff();
+					this.mso = new MulticastSocket(this.multdif_port);
+					this.mso.joinGroup(InetAddress.getByName(ip_multdif));
+					tcp_sendMsg(ProtocoleToken.NEWC);
+				}
 			break;
 
 			case NEWC:
@@ -291,8 +325,27 @@ public class Machine implements Runnable{
 				this.tcp_connected = false;
 			break;
 
+			case DUPL:
+				this.udp_nextPort_dup = msg.getPort();
+				this.next_ip_dup = msg.getIp();
+
+				tcp_sendMsg(ProtocoleToken.ACKD);
+				this.tcp_connected = false;
+				this.duplicator = true;
+			break;
+
 			case ACKC:
 				this.udp_connected = true;
+				this.tcp_connected = false;
+			break;
+
+			case ACKD:
+				this.udp_nextPort = msg.getPort();
+				this.udp_connected = true;
+				this.tcp_connected = false;
+			break;
+
+			case NOTC:
 				this.tcp_connected = false;
 			break;
 		}
@@ -307,6 +360,11 @@ public class Machine implements Runnable{
 
 		switch(msg.getPrefix()){
 			case TEST:
+				if( (msg.getIp_diff().equals(Tools.addZerosToIp(this.ip_multdif)) == false) 
+					&& (msg.getPort_diff() != this.multdif_port) && isDuplicator() == false){
+
+					waiting_msg.put(msg.getIdm(), msg.toString());
+				}
 			break;
 			case APPL:
 			break;
@@ -370,15 +428,37 @@ public class Machine implements Runnable{
 				msg.setPort((short)udp_nextPort);
 				msg.setPort_diff((short)multdif_port);
 			break;
+
 			case NEWC:
 				msg = new Message();
 				msg.setPrefix(ProtocoleToken.NEWC);
 				msg.setIp(ip);
 				msg.setPort((short)udp_listenPort);
 			break;
+
+			case DUPL:
+				msg = new Message();
+				msg.setPrefix(ProtocoleToken.DUPL);
+				msg.setIp(ip);
+				msg.setIp_diff(ip_multdif);
+				msg.setPort((short)udp_listenPort);
+				msg.setPort_diff((short)multdif_port);
+			break;
+
 			case ACKC:
 				msg = new Message();
 				msg.setPrefix(ProtocoleToken.ACKC);
+			break;
+
+			case ACKD:
+				msg = new Message();
+				msg.setPrefix(ProtocoleToken.ACKD);
+				msg.setPort((short)udp_listenPort);
+			break;
+
+			case NOTC:
+				msg = new Message();
+				msg.setPrefix(ProtocoleToken.NOTC);
 			break;
 		}
 
@@ -536,7 +616,7 @@ public class Machine implements Runnable{
    */
 	public void toLogs(String msg, ProtocoleToken mode, ProtocoleToken direction ,String ip, int port){
 		Date current_time = new Date();
-		String str_cur_time = (new SimpleDateFormat("HH:mm")).format(current_time);
+		String str_cur_time = (new SimpleDateFormat("HH:mm:ss")).format(current_time);
 
 		String st_direct = "";
 		if(direction == ProtocoleToken.RECEIVED)
@@ -555,8 +635,8 @@ public class Machine implements Runnable{
    * @return Représentation sous forme de string
    */
 	public String toString(){
-		String m = String.format("%s [ %s | %s | %s | %d | %d | %d | %d ]",
-			ident, ip, ip_multdif, next_ip, tcp_listenPort, udp_listenPort, udp_nextPort, multdif_port);
+		String m = String.format("%s [ %s | %s | %s | %d | %d | %d | %d | %s | %d ]",
+			ident, ip, ip_multdif, next_ip, tcp_listenPort, udp_listenPort, udp_nextPort, multdif_port, duplicator, udp_nextPort_dup);
 
 		return m;
 	}
@@ -658,6 +738,14 @@ public class Machine implements Runnable{
    */
 	public boolean udp_isConnected(){
 		return this.udp_connected;
+	}
+
+	/**
+   * La machine est un duplicateur ou non
+   * @return duplicator
+   */
+	public boolean isDuplicator(){
+		return this.duplicator;
 	}
 
 	/**

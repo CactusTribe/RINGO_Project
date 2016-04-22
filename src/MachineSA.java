@@ -67,7 +67,7 @@ public class MachineSA{
    * Affiche une nouvelle ligne pour la prochaine commande
    */
   public static void display_prompt(){
-      System.out.print("[c]Connect [d]Disconnect [l]Logs [t]Test \n[w]Who [i]Info [q]Quit : ");
+      System.out.print("[c]Connect [D]Duplication [d]Disconnect [l]Logs \n[t]Test [w]Who [i]Info [q]Quit : ");
   }
   
   /**
@@ -98,9 +98,15 @@ public class MachineSA{
     }  
     else if(argv.get(0).equals("c")){
     	if(argv.size() > 2)
-    		m.tcp_connectTo(argv.get(1), (short)Integer.parseInt(argv.get(2)));
+    		m.tcp_connectTo(argv.get(1), (short)Integer.parseInt(argv.get(2)), false);
     	else
     		System.out.println("Usage: c <ip> <tcp_port> (Connect machine to another in TCP)");
+    }
+    else if(argv.get(0).equals("D")){
+    	if(argv.size() > 2)
+    		m.tcp_connectTo(argv.get(1), (short)Integer.parseInt(argv.get(2)), true);
+    	else
+    		System.out.println("Usage: D <ip> <tcp_port> (Connect machine to duplicator in TCP)");
     }
     else if(argv.get(0).equals("d")){
     	try{

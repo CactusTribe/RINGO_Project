@@ -97,6 +97,17 @@ public class Message{
 				case EYBG:
 					this.idm = Integer.parseInt(argv.get(1));
 				break;
+				case DUPL:
+					this.ip = argv.get(1);
+					this.port = (short)Integer.parseInt(argv.get(2));
+					this.ip_diff = argv.get(3);
+					this.port_diff = (short)Integer.parseInt(argv.get(4));
+				break;
+				case ACKD:
+					this.port = (short)Integer.parseInt(argv.get(1));
+				break;
+				case NOTC:
+				break;
 			}
 		}
 	}
@@ -146,6 +157,17 @@ public class Message{
 			case EYBG:
 				mess = String.format("%s %s\n", 
 					prefix, Tools.longToStr8b(idm));
+			break;
+			case DUPL:
+				mess = String.format("%s %s %04d %s %04d\n", 
+					prefix,  ip, port, ip_diff, port_diff);
+			break;
+			case ACKD:
+				mess = String.format("%s %04d\n", 
+					prefix, port);
+			break;
+			case NOTC:
+				mess = String.format("%s\n", prefix);
 			break;
 		}
 

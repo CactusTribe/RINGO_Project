@@ -14,9 +14,11 @@ public class RINGO_Project{
 	// Premiers ports à utiliser
 	public static final short first_tcp = 5900; 
 	public static final short first_udp = 6000;
+	public static final short first_diff = 7000;
 
 	public static short current_tcp = first_tcp;
 	public static short current_udp = first_udp;
+	public static short current_diff = first_diff;
 
 	// Gestion des commandes
 	public static Scanner input = new Scanner(System.in);
@@ -55,7 +57,7 @@ public class RINGO_Project{
    * Affiche une nouvelle ligne pour la prochaine commande
    */
   public static void display_prompt(){
-      System.out.print("[a]Add [r]Remove [c]Connect [d]Disconnect\n[l]Logs [W]Write [t]Test [w]Who [s]Stats [q]Quit : ");
+      System.out.print("[a]Add [r]Remove [c]Connect [D]Duplication [d]Disconnect\n[l]Logs [W]Write [t]Test [w]Who [s]Stats [q]Quit : ");
   }
   
   /**
@@ -94,6 +96,9 @@ public class RINGO_Project{
     else if(argv.get(0).equals("c")){
     	connectMachine();
     }
+    else if(argv.get(0).equals("D")){
+    	connectMachineToDup();
+    }
     else if(argv.get(0).equals("d")){
     	disconnectMachine();
     }
@@ -127,8 +132,8 @@ public class RINGO_Project{
    */
 	public static void printStats(){
 		System.out.println("\n");
-		System.out.println("  |  N° - (state) IDENT [    HOST    |  IP_MULT  |    NEXT_IP   | TCP | UDP | NXT_UDP | MULT ]");
-		System.out.println("  |  -----------------------------------------------------------------------------------------");
+		System.out.println("  |  N° - (state) IDENT [    HOST    |  IP_MULT  |    NEXT_IP   | TCP | UDP | NXT_UDP | MULT | DUPL | UDP_DUP ]");
+		System.out.println("  |  ----------------------------------------------------------------------------------------------------------");
 		for(int i=0; i<machines.size(); i++)
 			System.out.println("  |  "+i+" - ("+((machines.get(i).udp_isConnected()) ? "C" : "A") +") "+machines.get(i));
 		System.out.println("  |");
@@ -208,7 +213,8 @@ public class RINGO_Project{
 			multdif_port = (short)Integer.parseInt(input.nextLine());
 		} 
 		catch (Exception e){ 
-			multdif_port = 7000;
+			multdif_port = current_diff;
+			current_diff++;
 		};
 
 		System.out.println("  *-------------------------------------*");
@@ -266,7 +272,7 @@ public class RINGO_Project{
 
 					if(machines.get(m1).tcp_isConnected() == false){
 						System.out.println("");
-						machines.get(m1).tcp_connectTo(machines.get(m2).getIp(), machines.get(m2).getPortTCP());
+						machines.get(m1).tcp_connectTo(machines.get(m2).getIp(), machines.get(m2).getPortTCP(), false);
 					}
 					else
 						System.out.println("Error : machine already connected.");
@@ -277,6 +283,37 @@ public class RINGO_Project{
 				
 			}catch (Exception e){
 				System.out.println("Usage: c <machine1> <machine2> (Connect machine1 to machine2 in TCP)");
+			}
+		}
+	}
+
+
+	/**
+   * Connecte une machine à une autre qui devient un duplicateur
+   */
+	public static void connectMachineToDup(){
+		if(argv.size() <= 2)
+			System.out.println("Usage: D <machine1> <duplicator> (Connect machine1 to duplicator in TCP)");
+		else{
+			try{
+				int m1 = Integer.parseInt(argv.get(1));
+				int m2 = Integer.parseInt(argv.get(2));
+
+				if(m1 < machines.size() && m2 < machines.size()){
+
+					if(machines.get(m1).tcp_isConnected() == false){
+						System.out.println("");
+						machines.get(m1).tcp_connectTo(machines.get(m2).getIp(), machines.get(m2).getPortTCP(), true);
+					}
+					else
+						System.out.println("Error : machine already connected.");
+				}
+				else
+					System.out.println("Error : machine doesn't exist.");
+
+				
+			}catch (Exception e){
+				System.out.println("Usage: D <machine1> <duplicator> (Connect machine1 to duplicator in TCP)");
 			}
 		}
 	}
