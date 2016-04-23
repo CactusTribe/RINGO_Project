@@ -57,7 +57,7 @@ public class RINGO_Project{
    * Affiche une nouvelle ligne pour la prochaine commande
    */
   public static void display_prompt(){
-      System.out.print("[a]Add [r]Remove [c]Connect [D]Duplication [d]Disconnect\n[l]Logs [W]Write [t]Test [w]Who [s]Stats [q]Quit : ");
+      System.out.print("[a]Add [r]Remove [c]Connect [d]Duplication [D]Disconnect\n[l]Logs [W]Write [t]Test [w]Who [s]Stats [q]Quit : ");
   }
   
   /**
@@ -96,10 +96,10 @@ public class RINGO_Project{
     else if(argv.get(0).equals("c")){
     	connectMachine();
     }
-    else if(argv.get(0).equals("D")){
+    else if(argv.get(0).equals("d")){
     	connectMachineToDup();
     }
-    else if(argv.get(0).equals("d")){
+    else if(argv.get(0).equals("D")){
     	disconnectMachine();
     }
     else if(argv.get(0).equals("l")){
@@ -182,56 +182,84 @@ public class RINGO_Project{
 		short udp_port = 0;
 		short multdif_port = 0;
 
-		System.out.println("");
-		System.out.println("  *-----------* Add machine *-----------*");
-		System.out.println("  | - Press ENTER for default value.");
-		System.out.println("  |-------------------------------------");
-		System.out.print("  | IP diff : ");
-		ip = input.nextLine();
-		if(ip.equals("")) ip = "225.1.2.4";
+		if(argv.size() <= 1){
+			System.out.println("");
+			System.out.println("  *-----------* Add machine *-----------*");
+			System.out.println("  | - Press ENTER for default value.");
+			System.out.println("  |-------------------------------------");
+			System.out.print("  | IP diff : ");
+			ip = input.nextLine();
+			if(ip.equals("")) ip = "225.1.2.4";
 
-		System.out.print("  | TCP port : ");
-		try { 
-			tcp_port = (short)Integer.parseInt(input.nextLine());
-		} 
-		catch (Exception e){ 
-			tcp_port = current_tcp; 
-			current_tcp++;
-		};
+			System.out.print("  | TCP port : ");
+			try { 
+				tcp_port = (short)Integer.parseInt(input.nextLine());
+			} 
+			catch (Exception e){ 
+				tcp_port = current_tcp; 
+				current_tcp++;
+			};
 
-		System.out.print("  | UDP port : ");
-		try { 
-			udp_port = (short)Integer.parseInt(input.nextLine());
-		} 
-		catch (Exception e){ 
-			udp_port = current_udp;
-			current_udp++;
-		};
+			System.out.print("  | UDP port : ");
+			try { 
+				udp_port = (short)Integer.parseInt(input.nextLine());
+			} 
+			catch (Exception e){ 
+				udp_port = current_udp;
+				current_udp++;
+			};
 
-		System.out.print("  | Multdif port : ");
-		try { 
-			multdif_port = (short)Integer.parseInt(input.nextLine());
-		} 
-		catch (Exception e){ 
-			//multdif_port = 7000;
-			
-			multdif_port = current_diff;
-			current_diff++;
-			
-		};
+			System.out.print("  | Multdif port : ");
+			try { 
+				multdif_port = (short)Integer.parseInt(input.nextLine());
+			} 
+			catch (Exception e){ 
+				//multdif_port = 7000;
+				
+				multdif_port = current_diff;
+				current_diff++;
+				
+			};
 
-		System.out.println("  *-------------------------------------*");
+			System.out.println("  *-------------------------------------*");
 
-		try{
-			Machine m = new Machine(ip, tcp_port, udp_port, multdif_port);
-			machines.add(m);
-			(new Thread(m)).start();
-			System.out.println(" -> New machine "+m.getIdent()+" run at "+ m.getIp() + " TCP("+m.getPortTCP()+") UDP(" + m.getPortUDP()+")");
-		}catch (Exception e){
-			System.out.println(e);
+			try{
+
+				Machine m = new Machine(ip, tcp_port, udp_port, multdif_port);
+				machines.add(m);
+				(new Thread(m)).start();
+
+				System.out.println(" -> New machine "+m.getIdent()+" run at "+ m.getIp() + " TCP("+m.getPortTCP()+") UDP(" + m.getPortUDP()+")");
+				printStats();
+
+			}catch (Exception e){
+				System.out.println(e);
+			}
+		}
+		else{
+			int nb_machines = Integer.parseInt(argv.get(1));
+			System.out.println("");
+			for(int i=0; i<nb_machines; i++){
+
+				try{
+					Machine m = new Machine("225.1.2.4", current_tcp, current_udp, current_diff);
+					current_tcp++;
+					current_udp++;
+					current_diff++;
+
+					machines.add(m);
+					(new Thread(m)).start();
+					System.out.println(" -> New machine "+m.getIdent()+" run at "+ m.getIp() + " TCP("+m.getPortTCP()+") UDP(" + m.getPortUDP()+")");
+
+				}catch (Exception e){
+					System.out.println(e);
+				}
+
+			}
+
+			printStats();
 		}
 
-		printStats();
 	}
 
 	/**
@@ -249,6 +277,7 @@ public class RINGO_Project{
 				if(num_machine < machines.size()){
 					machines.get(num_machine).stop();
 					machines.remove(num_machine);
+					printStats();
 				}
 				else
 					System.out.println("Error : machine doesn't exist.");
@@ -265,28 +294,58 @@ public class RINGO_Project{
    */
 	public static void connectMachine(){
 		if(argv.size() <= 2)
-			System.out.println("Usage: c <machine1> <machine2> (Connect machine1 to machine2 in TCP)");
+			System.out.println("Usage: c <machine1> <machine2> OR c <machine> <ip> <port> (Connect machine1 to machine2 in TCP)");
 		else{
-			try{
-				int m1 = Integer.parseInt(argv.get(1));
-				int m2 = Integer.parseInt(argv.get(2));
+			// Connexion via numero
+			if(argv.size() == 3){
+				try{
+					int m1 = Integer.parseInt(argv.get(1));
+					int m2 = Integer.parseInt(argv.get(2));
 
-				if(m1 < machines.size() && m2 < machines.size()){
+					if(m1 < machines.size() && m2 < machines.size()){
 
-					if(machines.get(m1).tcp_isConnected() == false){
-						System.out.println("");
-						machines.get(m1).tcp_connectTo(machines.get(m2).getIp(), machines.get(m2).getPortTCP(), false);
+						if(machines.get(m1).tcp_isConnected() == false){
+							System.out.println("");
+							machines.get(m1).tcp_connectTo(machines.get(m2).getIp(), machines.get(m2).getPortTCP(), false);
+							printStats();
+						}
+						else
+							System.out.println("Error : machine already connected.");
 					}
 					else
-						System.out.println("Error : machine already connected.");
-				}
-				else
-					System.out.println("Error : machine doesn't exist.");
+						System.out.println("Error : machine doesn't exist.");
 
-				
-			}catch (Exception e){
-				System.out.println("Usage: c <machine1> <machine2> (Connect machine1 to machine2 in TCP)");
+					
+				}catch (Exception e){
+					System.out.println("Usage: c <machine1> <machine2> OR c <machine> <ip> <port> (Connect machine1 to machine2 in TCP)");
+				}				
 			}
+			// Connexion via IP/PORT
+			else if(argv.size() == 4){
+				try{
+					int m = Integer.parseInt(argv.get(1));
+					String ip = argv.get(2);
+					short port = (short)Integer.parseInt(argv.get(3));
+
+					if(m < machines.size()){
+
+						if(machines.get(m).tcp_isConnected() == false){
+							System.out.println("");
+							machines.get(m).tcp_connectTo(ip, port, false);
+							printStats();
+						}
+						else
+							System.out.println("Error : machine already connected.");
+					}
+					else
+						System.out.println("Error : machine doesn't exist.");
+
+					
+				}catch (Exception e){
+					System.out.println("Usage: c <machine1> <machine2> OR c <machine> <ip> <port> (Connect machine1 to machine2 in TCP)");
+				}	
+			}
+
 		}
 	}
 
@@ -296,27 +355,56 @@ public class RINGO_Project{
    */
 	public static void connectMachineToDup(){
 		if(argv.size() <= 2)
-			System.out.println("Usage: D <machine1> <duplicator> (Connect machine1 to duplicator in TCP)");
+			System.out.println("Usage: d <machine1> <duplicator> OR d <machine> <ip> <port> (Connect machine1 to duplicator in TCP)");
 		else{
-			try{
-				int m1 = Integer.parseInt(argv.get(1));
-				int m2 = Integer.parseInt(argv.get(2));
+			// Connexion via numero
+			if(argv.size() == 3){
+				try{
+					int m1 = Integer.parseInt(argv.get(1));
+					int m2 = Integer.parseInt(argv.get(2));
 
-				if(m1 < machines.size() && m2 < machines.size()){
+					if(m1 < machines.size() && m2 < machines.size()){
 
-					if(machines.get(m1).tcp_isConnected() == false){
-						System.out.println("");
-						machines.get(m1).tcp_connectTo(machines.get(m2).getIp(), machines.get(m2).getPortTCP(), true);
+						if(machines.get(m1).tcp_isConnected() == false){
+							System.out.println("");
+							machines.get(m1).tcp_connectTo(machines.get(m2).getIp(), machines.get(m2).getPortTCP(), true);
+							printStats();
+						}
+						else
+							System.out.println("Error : machine already connected.");
 					}
 					else
-						System.out.println("Error : machine already connected.");
-				}
-				else
-					System.out.println("Error : machine doesn't exist.");
+						System.out.println("Error : machine doesn't exist.");
 
-				
-			}catch (Exception e){
-				System.out.println("Usage: D <machine1> <duplicator> (Connect machine1 to duplicator in TCP)");
+					
+				}catch (Exception e){
+					System.out.println("Usage: d <machine1> <duplicator> OR d <machine> <ip> <port> (Connect machine1 to duplicator in TCP)");
+				}		
+			}
+			// Connexion via IP/PORT
+			else if(argv.size() == 4){
+				try{
+					int m = Integer.parseInt(argv.get(1));
+					String ip = argv.get(2);
+					short port = (short)Integer.parseInt(argv.get(3));
+
+					if(m < machines.size()){
+
+						if(machines.get(m).tcp_isConnected() == false){
+							System.out.println("");
+							machines.get(m).tcp_connectTo(ip, port, true);
+							printStats();
+						}
+						else
+							System.out.println("Error : machine already connected.");
+					}
+					else
+						System.out.println("Error : machine doesn't exist.");
+
+					
+				}catch (Exception e){
+					System.out.println("Usage: d <machine1> <duplicator> OR d <machine> <ip> <port> (Connect machine1 to duplicator in TCP)");
+				}	
 			}
 		}
 	}
@@ -326,7 +414,7 @@ public class RINGO_Project{
    */
 	public static void disconnectMachine(){
 		if(argv.size() <= 1)
-			System.out.println("Usage: d <machine> (Disonnect machine)");
+			System.out.println("Usage: D <machine> (Disonnect machine)");
 		else{
 			try{
 				int m1 = Integer.parseInt(argv.get(1));
@@ -335,6 +423,7 @@ public class RINGO_Project{
 					if(machines.get(m1).udp_isConnected() == true){
 						System.out.println("");
 						machines.get(m1).leaveRing();
+						printStats();
 					}
 					else
 						System.out.println("Error : machine is not connected.");
@@ -344,7 +433,7 @@ public class RINGO_Project{
 
 				
 			}catch (Exception e){
-				System.out.println("Usage: d <machine> (Disonnect machine)");
+				System.out.println("Usage: D <machine> (Disonnect machine)");
 			}
 		}
 	}

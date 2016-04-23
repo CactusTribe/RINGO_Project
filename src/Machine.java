@@ -58,20 +58,20 @@ public class Machine implements Runnable{
 
 	/**
    * Constructeur
-   * @param ip_multdif Adresse IP de multicast
-	 * @param tcp_listenPort Port d'écoute TCP
-	 * @param udp_listenPort Port d'écoute UDP
-	 * @param multdif_port Port d'écoute UDP multicast
+   * @param ip_diff Adresse IP de multicast
+	 * @param tcp_port Port d'écoute TCP
+	 * @param udp_port Port d'écoute UDP
+	 * @param diff_port Port d'écoute UDP multicast
 	 * @throws IOException Lance une exception en cas de problème
    */
-	public Machine(String ip_multdif, short tcp_listenPort, short udp_listenPort, short multdif_port) throws Exception{
+	public Machine(String ip_diff, short tcp_port, short udp_port, short diff_port) throws Exception{
 
 		this.ident = getRandomIdent();
-		this.ip_multdif = ip_multdif;
-		this.tcp_listenPort = tcp_listenPort;
-		this.udp_listenPort = udp_listenPort;
-		this.udp_nextPort = udp_listenPort;
-		this.multdif_port = multdif_port;
+		this.ip_multdif = ip_diff;
+		this.tcp_listenPort = tcp_port;
+		this.udp_listenPort = udp_port;
+		this.udp_nextPort = udp_port;
+		this.multdif_port = diff_port;
 		this.waiting_msg = new Hashtable<Integer,String>();
 
 		this.udp_connected = false;
@@ -170,33 +170,54 @@ public class Machine implements Runnable{
 						InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
 
 						Message msg = new Message(st);
-						
-						
+
 						// Renvoi du message s'il n'a pas fait le tour
 						if(waiting_msg.containsKey(msg.getIdm()) == false){
-
-							udp_readMessage(msg);
 
 							// Ajout dans les logs
 							toLogs(msg.toString(), ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
 								isa.getAddress().getHostAddress(), isa.getPort());
-
+									
 							waiting_msg.put(msg.getIdm(), msg.toString());
 
-							isa = new InetSocketAddress(next_ip, udp_nextPort);
-							paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
-							dso.send(paquet);	
+							// Si la machine est un duplicateur
+							if(isDuplicator()){
+								// Si c'est un message de TEST on vérifie la destination
+								if(msg.getPrefix() == ProtocoleToken.TEST){
+
+									if( msg.getIp_diff().equals(ip_multdif) && (msg.getPort_diff() == multdif_port) ){
+										isa = new InetSocketAddress(next_ip, udp_nextPort);
+									}
+									else{
+										isa = new InetSocketAddress(next_ip_dup, udp_nextPort_dup);
+									}
+
+									paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+									dso.send(paquet);
+								}
+								else{
+									// Envoi sur l'anneau principal
+									isa = new InetSocketAddress(next_ip, udp_nextPort);
+									paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+									dso.send(paquet);	
+
+									// Envoi sur le deuxieme anneau
+									isa = new InetSocketAddress(next_ip_dup, udp_nextPort_dup);
+									paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+									dso.send(paquet);
+								}
+							}
+							else{
+								isa = new InetSocketAddress(next_ip, udp_nextPort);
+								paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+								dso.send(paquet);	
+							}
 							
+							udp_readMessage(msg);
+
 						}
 						else{
 							waiting_msg.remove(msg.getIdm());
-						}
-
-
-						if(isDuplicator()){
-							isa = new InetSocketAddress(next_ip_dup, udp_nextPort_dup);
-							paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
-							dso.send(paquet);	
 						}
 
 					}catch (Exception e){
@@ -372,12 +393,6 @@ public class Machine implements Runnable{
 
 		switch(msg.getPrefix()){
 			case TEST:
-				// Permet de ne pas renvoyer le test sur l'anneau doublé
-				if( (msg.getIp_diff().equals(Tools.addZerosToIp(this.ip_multdif)) == false) 
-					&& (msg.getPort_diff() != this.multdif_port) && isDuplicator() == false){
-
-					waiting_msg.put(msg.getIdm(), msg.toString());
-				}
 			break;
 			case APPL:
 			break;
@@ -499,7 +514,7 @@ public class Machine implements Runnable{
 				msg.setIp_diff(ip_multdif);
 				msg.setPort_diff(multdif_port);
 				last_idm_test = msg.getIdm();
-				waiting_msg.put(last_idm_test, msg.toString());
+				waiting_msg.put(msg.getIdm(), msg.toString());
 			break;
 
 			case GBYE:
@@ -535,16 +550,10 @@ public class Machine implements Runnable{
 		}
 
 		if(msg != null){
-			// On ajoute le message dans la liste des messages en attente de retour
-			//waiting_msg.put(msg.getIdm(), msg.toString());
-
 			// Envoi du message
 			InetSocketAddress isa = new InetSocketAddress(next_ip, udp_nextPort);
 			DatagramPacket paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
 			dso.send(paquet);	
-
-			//System.out.println("");
-			//System.out.println("  > "+this.ident+" send : "+msg);
 		}
 	}
 

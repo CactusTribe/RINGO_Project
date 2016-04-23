@@ -97,47 +97,60 @@ public class MachineSA{
 			System.exit(0);
     }  
     else if(argv.get(0).equals("c")){
+
     	if(argv.size() > 2)
     		m.tcp_connectTo(argv.get(1), (short)Integer.parseInt(argv.get(2)), false);
     	else
     		System.out.println("Usage: c <ip> <tcp_port> (Connect machine to another in TCP)");
+
     }
     else if(argv.get(0).equals("D")){
+
     	if(argv.size() > 2)
     		m.tcp_connectTo(argv.get(1), (short)Integer.parseInt(argv.get(2)), true);
     	else
     		System.out.println("Usage: D <ip> <tcp_port> (Connect machine to duplicator in TCP)");
+
     }
     else if(argv.get(0).equals("d")){
+
     	try{
     		System.out.println("");
     		m.leaveRing();
     	}catch (Exception e){
     		e.printStackTrace();
     	}
+
     }
     else if(argv.get(0).equals("l")){
+
 			System.out.println("");
 			LinkedList<String> logs = m.getLogs();
 			for(int i=0; i<logs.size(); i++)
 				System.out.println("  |"+logs.get(logs.size()-1-i));
 			System.out.println("\n");
+
     }
     else if(argv.get(0).equals("t")){
+
     	try{
       	m.testRing();
       }catch (Exception e){
     		e.printStackTrace();
     	}
+
     }
     else if(argv.get(0).equals("w")){
+
     	try{
       	m.whosRing();
       }catch (Exception e){
     		e.printStackTrace();
     	}
+
     }
     else if(argv.get(0).equals("i")){
+
     	System.out.println("");
     	System.out.println("  | Machine ID : "+m.getIdent());
     	System.out.println("  | IP : "+m.getIp());
@@ -146,11 +159,14 @@ public class MachineSA{
     	System.out.println("  | UDP multicast : "+m.getPort_diff());
     	System.out.println("  | State : "+ ((m.udp_isConnected()) ? " <-> Connected to "+m.getIp_succ()+":"+m.getPort_succ() : " <x> Deconnected") );
     	System.out.println("");
+
     }
     else if(argv.get(0).equals("q")){
+
     	m.stop();
       System.out.println("Bye.");
 			System.exit(0);
+			
     }
     else{
         System.out.format("Command %s doesn't exist.\n", argl);
