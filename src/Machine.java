@@ -35,14 +35,12 @@ public class Machine implements Runnable{
 
 	private boolean duplicator;
 	private boolean connectedToDuplicator;
-	
-	// Threads d'écoutes
-	private Thread udp_listening;
-	private Thread tcp_listening;
-	private Thread diff_listening;
 
-	private Thread timerTest; // Boucle du timer
-	private long start_time; // Premiere mesure du temps
+	// Runnables d'écoutes
+	private Runnable udp_listening;
+	private Runnable tcp_listening;
+	private Runnable multicast_listening;
+
 	private int delay = 3000; // Interval de temps pour le TEST en ms
 	private int last_idm_test; // L'id du dernier message TEST envoyé
 
@@ -54,7 +52,7 @@ public class Machine implements Runnable{
 	private BufferedReader br;
 
 	// Liste des messages en attente de reception
-	private Hashtable waiting_msg;
+	private Hashtable<Integer,String> waiting_msg;
 	// Historique des recus
 	private LinkedList<String> logs = new LinkedList<String>();
 
@@ -74,26 +72,27 @@ public class Machine implements Runnable{
 		this.udp_listenPort = udp_listenPort;
 		this.udp_nextPort = udp_listenPort;
 		this.multdif_port = multdif_port;
-		this.waiting_msg = new Hashtable();
+		this.waiting_msg = new Hashtable<Integer,String>();
 
 		this.udp_connected = false;
 		this.tcp_connected = false;
 		this.duplicator = false;
 		this.connectedToDuplicator = false;
 
-		this.dso = new DatagramSocket(this.udp_listenPort);
-		this.mso = new MulticastSocket(this.multdif_port);
-		this.mso.joinGroup(InetAddress.getByName(ip_multdif));
 		this.tcp_socket = new ServerSocket(tcp_listenPort);
+		this.dso = new DatagramSocket(this.udp_listenPort);
+
+		this.mso = new MulticastSocket(this.multdif_port);
+		this.mso.joinGroup(InetAddress.getByName(this.ip_multdif));
 
 		// Recherche de l'ip 192.x.x.x (Nécessaire pour linux)
-		Enumeration en = NetworkInterface.getNetworkInterfaces();
+		Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces();
 		while(en.hasMoreElements()){
-	    NetworkInterface ni=(NetworkInterface) en.nextElement();
-	    Enumeration ee = ni.getInetAddresses();
+	    NetworkInterface ni = en.nextElement();
+	    Enumeration<InetAddress> ee = ni.getInetAddresses();
 
 	    while(ee.hasMoreElements()) {
-        InetAddress ia= (InetAddress) ee.nextElement();
+        InetAddress ia = ee.nextElement();
         if(ia.getHostAddress().matches("192.168.1.[0-9]*")){
         	this.ip = ia.getHostAddress();
         	break;
@@ -108,7 +107,7 @@ public class Machine implements Runnable{
 		/**
 	   * Thread d'écoute TCP
 	   */
-		tcp_listening = new Thread(new Runnable() {
+		tcp_listening = new Runnable() {
 			public void run(){
 
 				while(true){
@@ -152,12 +151,12 @@ public class Machine implements Runnable{
 					}
 				}
 			}
-		});
+		};
 
 		/**
 	   * Thread d'écoute UDP
 	   */
-		udp_listening = new Thread(new Runnable() {
+		udp_listening = new Runnable() {
 			public void run(){
 				while(true){
 					try{
@@ -171,26 +170,22 @@ public class Machine implements Runnable{
 						InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
 
 						Message msg = new Message(st);
-						udp_readMessage(msg);
-
-						// Ajout dans les logs
-						toLogs(msg.toString(), ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
-							isa.getAddress().getHostAddress(), isa.getPort());
+						
 						
 						// Renvoi du message s'il n'a pas fait le tour
 						if(waiting_msg.containsKey(msg.getIdm()) == false){
+
+							udp_readMessage(msg);
+
+							// Ajout dans les logs
+							toLogs(msg.toString(), ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
+								isa.getAddress().getHostAddress(), isa.getPort());
 
 							waiting_msg.put(msg.getIdm(), msg.toString());
 
 							isa = new InetSocketAddress(next_ip, udp_nextPort);
 							paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
 							dso.send(paquet);	
-
-							if(isDuplicator()){
-								isa = new InetSocketAddress(next_ip_dup, udp_nextPort_dup);
-								paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
-								dso.send(paquet);	
-							}
 							
 						}
 						else{
@@ -198,17 +193,23 @@ public class Machine implements Runnable{
 						}
 
 
+						if(isDuplicator()){
+							isa = new InetSocketAddress(next_ip_dup, udp_nextPort_dup);
+							paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+							dso.send(paquet);	
+						}
+
 					}catch (Exception e){
 						break;
 					}
 				}
 			}
-		});
+		};
 
 		/**
 	   * Thread d'écoute multicast
 	   */
-		diff_listening = new Thread(new Runnable() {
+		multicast_listening = new Runnable(){
 			public void run(){
 				while(true){
 					try{
@@ -221,35 +222,37 @@ public class Machine implements Runnable{
 						String st = new String(paquet.getData(), 0, paquet.getLength());
 						InetSocketAddress isa = (InetSocketAddress)paquet.getSocketAddress();
 
-						// Ajout dans les logs
-						toLogs(st, ProtocoleToken.DIFF, ProtocoleToken.RECEIVED, 
-							isa.getHostName(), isa.getPort());
-
 						// Interpretation du message
 						Message msg = new Message(st);
 						diff_readMessage(msg);
+
+						// Ajout dans les logs
+						toLogs(msg.toString(), ProtocoleToken.DIFF, ProtocoleToken.RECEIVED, 
+							isa.getHostName(), isa.getPort());
 
 					}catch (Exception e){
 						break;
 					}
 				}
 			}
-		});
+		};
 	}
+
 
 	/**
    * Méthode lancée lors de l'appel à Machine.start()
    */
 	public void run(){
-		diff_listening.start();
-		udp_listening.start();
-		tcp_listening.start();
+		(new Thread(tcp_listening)).start();
+		(new Thread(udp_listening)).start();
+		(new Thread(multicast_listening)).start();
 	}
 
 	/**
    * Lance une connexion vers l'ip et le port distant
    * @param ip IP de la machine distante
    * @param port Port de la machine distante
+   * @param duplication True pour se connecter a une entité qui deviendra doubleur
    */
 	public void tcp_connectTo(String ip, short port, boolean duplication){
 		try{
@@ -308,10 +311,19 @@ public class Machine implements Runnable{
 					tcp_sendMsg(ProtocoleToken.DUPL);
 				}
 				else{
+					// On se retire de l'ancien groupe
+					this.mso.leaveGroup(InetAddress.getByName(this.ip_multdif));
+					// Modification des informations de multicast
 					this.ip_multdif = msg.getIp_diff();
 					this.multdif_port = msg.getPort_diff();
+
+					// Fermeture de l'ancien socket
+					this.mso.close();
+					// Nouveau point d'écoute multicast
 					this.mso = new MulticastSocket(this.multdif_port);
-					this.mso.joinGroup(InetAddress.getByName(ip_multdif));
+					this.mso.joinGroup(InetAddress.getByName(this.ip_multdif));
+					(new Thread(multicast_listening)).start();
+
 					tcp_sendMsg(ProtocoleToken.NEWC);
 				}
 			break;
@@ -360,6 +372,7 @@ public class Machine implements Runnable{
 
 		switch(msg.getPrefix()){
 			case TEST:
+				// Permet de ne pas renvoyer le test sur l'anneau doublé
 				if( (msg.getIp_diff().equals(Tools.addZerosToIp(this.ip_multdif)) == false) 
 					&& (msg.getPort_diff() != this.multdif_port) && isDuplicator() == false){
 
@@ -425,15 +438,15 @@ public class Machine implements Runnable{
 				msg.setPrefix(ProtocoleToken.WELC);
 				msg.setIp(next_ip);
 				msg.setIp_diff(ip_multdif);
-				msg.setPort((short)udp_nextPort);
-				msg.setPort_diff((short)multdif_port);
+				msg.setPort(udp_nextPort);
+				msg.setPort_diff(multdif_port);
 			break;
 
 			case NEWC:
 				msg = new Message();
 				msg.setPrefix(ProtocoleToken.NEWC);
 				msg.setIp(ip);
-				msg.setPort((short)udp_listenPort);
+				msg.setPort(udp_listenPort);
 			break;
 
 			case DUPL:
@@ -441,8 +454,8 @@ public class Machine implements Runnable{
 				msg.setPrefix(ProtocoleToken.DUPL);
 				msg.setIp(ip);
 				msg.setIp_diff(ip_multdif);
-				msg.setPort((short)udp_listenPort);
-				msg.setPort_diff((short)multdif_port);
+				msg.setPort(udp_listenPort);
+				msg.setPort_diff(multdif_port);
 			break;
 
 			case ACKC:
@@ -453,7 +466,7 @@ public class Machine implements Runnable{
 			case ACKD:
 				msg = new Message();
 				msg.setPrefix(ProtocoleToken.ACKD);
-				msg.setPort((short)udp_listenPort);
+				msg.setPort(udp_listenPort);
 			break;
 
 			case NOTC:
@@ -486,6 +499,7 @@ public class Machine implements Runnable{
 				msg.setIp_diff(ip_multdif);
 				msg.setPort_diff(multdif_port);
 				last_idm_test = msg.getIdm();
+				waiting_msg.put(last_idm_test, msg.toString());
 			break;
 
 			case GBYE:
@@ -522,7 +536,7 @@ public class Machine implements Runnable{
 
 		if(msg != null){
 			// On ajoute le message dans la liste des messages en attente de retour
-			waiting_msg.put(msg.getIdm(), msg.toString());
+			//waiting_msg.put(msg.getIdm(), msg.toString());
 
 			// Envoi du message
 			InetSocketAddress isa = new InetSocketAddress(next_ip, udp_nextPort);
@@ -554,7 +568,7 @@ public class Machine implements Runnable{
 			// Envoi du message
 			InetSocketAddress isa = new InetSocketAddress(ip_multdif, multdif_port);
 			DatagramPacket paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
-			dso.send(paquet);				
+			dso.send(paquet);
 		}
 	}
 
@@ -582,25 +596,25 @@ public class Machine implements Runnable{
 
 		udp_sendMsg(ProtocoleToken.TEST);
 
-		// Début du timer de la procédure de TEST
-		start_time = System.currentTimeMillis();
-		while(true){
-			if(System.currentTimeMillis() - start_time < delay){
+		boolean brokenRing = true;
+		long start_time = System.currentTimeMillis();
 
-				if(waiting_msg.containsKey(last_idm_test) == false){
-					System.out.println("\n -> Structure is correct.\n");
-					break;
-				}
+		// Début du timer de la procédure de TEST
+		while(System.currentTimeMillis() - start_time < delay){
+
+			if(waiting_msg.containsKey(last_idm_test) == false){
+				System.out.println("\n -> Structure is correct.\n");
+				brokenRing = false;
+				break;
 			}
-			else{
-				if(waiting_msg.containsKey(last_idm_test) == true){
-					System.out.println("\n -> Structure is broken. [DOWN] sent on multicast.\n");
-					diff_sendMsg(ProtocoleToken.DOWN);
-					waiting_msg.remove(last_idm_test);
-					break;
-				}
-			}
-			Thread.sleep(1);
+		}
+		
+		if(brokenRing){
+			System.out.println("\n -> Structure is broken. [DOWN] sent on multicast.\n");
+			diff_sendMsg(ProtocoleToken.DOWN);
+
+			if(waiting_msg.containsKey(last_idm_test) == true)
+				waiting_msg.remove(last_idm_test);
 		}
 	}
 
@@ -754,6 +768,7 @@ public class Machine implements Runnable{
 	public void stop(){
 		try{
 			this.dso.close();
+			this.mso.leaveGroup(InetAddress.getByName(this.ip_multdif));
 			this.mso.close();
 			this.tcp_socket.close();
 		}catch (Exception e){

@@ -213,8 +213,11 @@ public class RINGO_Project{
 			multdif_port = (short)Integer.parseInt(input.nextLine());
 		} 
 		catch (Exception e){ 
+			//multdif_port = 7000;
+			
 			multdif_port = current_diff;
 			current_diff++;
+			
 		};
 
 		System.out.println("  *-------------------------------------*");
