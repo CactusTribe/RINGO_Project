@@ -217,7 +217,8 @@ public class Machine implements Runnable{
 
 						}
 						else{
-							waiting_msg.remove(msg.getIdm());
+							if(msg.getPrefix() == ProtocoleToken.TEST)
+								waiting_msg.remove(msg.getIdm());
 						}
 
 					}catch (Exception e){
