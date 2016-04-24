@@ -127,7 +127,7 @@ public class MachineSA{
 			System.out.println("");
 			LinkedList<String> logs = m.getLogs();
 			for(int i=0; i<logs.size(); i++)
-				System.out.println("  |"+logs.get(logs.size()-1-i));
+				System.out.println("  |"+logs.get(i));
 			System.out.println("\n");
 
     }
@@ -166,7 +166,7 @@ public class MachineSA{
     	m.stop();
       System.out.println("Bye.");
 			System.exit(0);
-			
+
     }
     else{
         System.out.format("Command %s doesn't exist.\n", argl);

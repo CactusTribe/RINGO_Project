@@ -158,7 +158,7 @@ public class RINGO_Project{
 					System.out.println("  *------------------*");
 					LinkedList<String> logs = machines.get(num_machine).getLogs();
 					for(int i=0; i<logs.size(); i++)
-						System.out.println("  |"+logs.get(logs.size()-1-i));
+						System.out.println("  |"+logs.get(i));
 					System.out.println("\n");
 				}
 				else{
