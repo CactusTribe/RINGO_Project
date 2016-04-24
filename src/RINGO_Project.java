@@ -423,7 +423,6 @@ public class RINGO_Project{
 					if(machines.get(m1).udp_isConnected() == true){
 						System.out.println("");
 						machines.get(m1).leaveRing();
-						printStats();
 					}
 					else
 						System.out.println("Error : machine is not connected.");
@@ -479,7 +478,7 @@ public class RINGO_Project{
 
 				
 			}catch (Exception e){
-				System.out.println("Usage: w <machine> (Send WHOS into the ring)");
+				e.printStackTrace();
 			}
 		}	
 	}

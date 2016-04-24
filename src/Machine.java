@@ -51,8 +51,10 @@ public class Machine implements Runnable{
 	private PrintWriter pw;
 	private BufferedReader br;
 
-	// Liste des messages en attente de reception
-	private Hashtable<Integer,String> waiting_msg;
+	// Liste des messages déjà lu
+	private Hashtable<Integer,String> received_msg;
+	// Liste des messages envoyés
+	private Hashtable<Integer,String> sent_msg;
 	// Historique des recus
 	private LinkedList<String> logs = new LinkedList<String>();
 
@@ -72,7 +74,8 @@ public class Machine implements Runnable{
 		this.udp_listenPort = udp_port;
 		this.udp_nextPort = udp_port;
 		this.multdif_port = diff_port;
-		this.waiting_msg = new Hashtable<Integer,String>();
+		this.received_msg = new Hashtable<Integer,String>();
+		this.sent_msg = new Hashtable<Integer,String>();
 
 		this.udp_connected = false;
 		this.tcp_connected = false;
@@ -171,54 +174,16 @@ public class Machine implements Runnable{
 
 						Message msg = new Message(st);
 
-						// Renvoi du message s'il n'a pas fait le tour
-						if(waiting_msg.containsKey(msg.getIdm()) == false){
+						// Si on a pas déjà recu le message
+						if(received_msg.containsKey(msg.getIdm()) == false){
+
+							// Interpretation du message
+							udp_readMessage(msg);
 
 							// Ajout dans les logs
 							toLogs(msg.toString(), ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
 								isa.getAddress().getHostAddress(), isa.getPort());
-									
-							waiting_msg.put(msg.getIdm(), msg.toString());
 
-							// Si la machine est un duplicateur
-							if(isDuplicator()){
-								// Si c'est un message de TEST on vérifie la destination
-								if(msg.getPrefix() == ProtocoleToken.TEST){
-
-									if( msg.getIp_diff().equals(ip_multdif) && (msg.getPort_diff() == multdif_port) ){
-										isa = new InetSocketAddress(next_ip, udp_nextPort);
-									}
-									else{
-										isa = new InetSocketAddress(next_ip_dup, udp_nextPort_dup);
-									}
-
-									paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
-									dso.send(paquet);
-								}
-								else{
-									// Envoi sur l'anneau principal
-									isa = new InetSocketAddress(next_ip, udp_nextPort);
-									paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
-									dso.send(paquet);	
-
-									// Envoi sur le deuxieme anneau
-									isa = new InetSocketAddress(next_ip_dup, udp_nextPort_dup);
-									paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
-									dso.send(paquet);
-								}
-							}
-							else{
-								isa = new InetSocketAddress(next_ip, udp_nextPort);
-								paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
-								dso.send(paquet);	
-							}
-							
-							udp_readMessage(msg);
-
-						}
-						else{
-							if(msg.getPrefix() == ProtocoleToken.TEST)
-								waiting_msg.remove(msg.getIdm());
 						}
 
 					}catch (Exception e){
@@ -394,18 +359,25 @@ public class Machine implements Runnable{
 
 		switch(msg.getPrefix()){
 			case TEST:
+				udp_sendMsg(msg);
 			break;
+
 			case APPL:
 			break;
+
 			case WHOS:
-				udp_sendMsg(ProtocoleToken.MEMB);
+				udp_sendMsg(msg);
+				udp_sendNewMsg(ProtocoleToken.MEMB);
 			break;
+
 			case MEMB:
+				udp_sendMsg(msg);
 			break;
+
 			case GBYE:
 				if(msg.getIp().equals(this.next_ip) && msg.getPort() == this.udp_nextPort){
 
-					udp_sendMsg(ProtocoleToken.EYBG);
+					udp_sendNewMsg(ProtocoleToken.EYBG);
 
 					this.next_ip = msg.getIp_succ();
 					this.udp_nextPort = msg.getPort_succ();
@@ -413,13 +385,17 @@ public class Machine implements Runnable{
 					if(this.ip.equals(this.next_ip) && this.udp_listenPort == this.udp_nextPort)
 						this.udp_connected = false;
 				}
+				else udp_sendMsg(msg);
 			break;
+
 			case EYBG:
 				this.next_ip = this.ip;
 				this.udp_nextPort = this.udp_listenPort;
 				this.udp_connected = false;
 			break;
 		}
+				
+		received_msg.put(msg.getIdm(), msg.toString());
 	}
 
 	/**
@@ -498,11 +474,58 @@ public class Machine implements Runnable{
 	}
 
 	/**
-   * Permet d'envoyer un message via UDP
+   * Permet d'envoyer un message existant via UDP
+   * @param msg Message à envoyer
+   * @throws IOException Lance une exception en cas de problème
+   */
+	public void udp_sendMsg(Message msg) throws IOException{
+		if(msg != null){
+
+			InetSocketAddress isa = null;
+			DatagramPacket paquet = null;
+
+			// Si la machine est un duplicateur
+			if(isDuplicator()){
+				// Si c'est un message de TEST on vérifie la destination
+				if(msg.getPrefix() == ProtocoleToken.TEST){
+
+					if(msg.getIp_diff().equals(ip_multdif) && (msg.getPort_diff() == multdif_port))
+						isa = new InetSocketAddress(next_ip, udp_nextPort);
+					else
+						isa = new InetSocketAddress(next_ip_dup, udp_nextPort_dup);
+
+					paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+					dso.send(paquet);
+				}
+				else{
+					// Envoi sur l'anneau principal
+					isa = new InetSocketAddress(next_ip, udp_nextPort);
+					paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+					dso.send(paquet);	
+
+					// Envoi sur le deuxieme anneau
+					isa = new InetSocketAddress(next_ip_dup, udp_nextPort_dup);
+					paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+					dso.send(paquet);
+				}
+			}
+			else{
+				isa = new InetSocketAddress(next_ip, udp_nextPort);
+				paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+				dso.send(paquet);	
+			} 
+
+			// Ajout dans la liste des messages envoyés
+			sent_msg.put(msg.getIdm(), msg.toString());
+		}
+	}
+
+	/**
+   * Permet d'envoyer un nouveau message via UDP
    * @param token Type de message à envoyer
    * @throws IOException Lance une exception en cas de problème
    */
-	public void udp_sendMsg(ProtocoleToken token) throws IOException{
+	public void udp_sendNewMsg(ProtocoleToken token) throws IOException{
 		
 		Message msg = null; 
 
@@ -515,7 +538,6 @@ public class Machine implements Runnable{
 				msg.setIp_diff(ip_multdif);
 				msg.setPort_diff(multdif_port);
 				last_idm_test = msg.getIdm();
-				waiting_msg.put(msg.getIdm(), msg.toString());
 			break;
 
 			case GBYE:
@@ -550,12 +572,7 @@ public class Machine implements Runnable{
 			break;
 		}
 
-		if(msg != null){
-			// Envoi du message
-			InetSocketAddress isa = new InetSocketAddress(next_ip, udp_nextPort);
-			DatagramPacket paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
-			dso.send(paquet);	
-		}
+		udp_sendMsg(msg);
 	}
 
 	/**
@@ -587,7 +604,7 @@ public class Machine implements Runnable{
    * @throws IOException Lance une exception en cas de problème
    */
 	public void whosRing() throws IOException{
-		udp_sendMsg(ProtocoleToken.WHOS);
+		udp_sendNewMsg(ProtocoleToken.WHOS);
 	}
 
 	/**
@@ -595,7 +612,7 @@ public class Machine implements Runnable{
    * @throws IOException Lance une exception en cas de problème
    */
 	public void leaveRing() throws IOException{
-		udp_sendMsg(ProtocoleToken.GBYE);
+		udp_sendNewMsg(ProtocoleToken.GBYE);
 	}
 
 	/**
@@ -604,7 +621,7 @@ public class Machine implements Runnable{
    */
 	public void testRing() throws Exception{
 
-		udp_sendMsg(ProtocoleToken.TEST);
+		udp_sendNewMsg(ProtocoleToken.TEST);
 
 		boolean brokenRing = true;
 		long start_time = System.currentTimeMillis();
@@ -612,7 +629,7 @@ public class Machine implements Runnable{
 		// Début du timer de la procédure de TEST
 		while(System.currentTimeMillis() - start_time < delay){
 
-			if(waiting_msg.containsKey(last_idm_test) == false){
+			if(received_msg.containsKey(last_idm_test) == true){
 				System.out.println("\n -> Structure is correct.\n");
 				brokenRing = false;
 				break;
@@ -622,9 +639,6 @@ public class Machine implements Runnable{
 		if(brokenRing){
 			System.out.println("\n -> Structure is broken. [DOWN] sent on multicast.\n");
 			diff_sendMsg(ProtocoleToken.DOWN);
-
-			if(waiting_msg.containsKey(last_idm_test) == true)
-				waiting_msg.remove(last_idm_test);
 		}
 	}
 
