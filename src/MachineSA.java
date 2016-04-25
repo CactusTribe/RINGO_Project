@@ -67,27 +67,27 @@ public class MachineSA{
    * Affiche une nouvelle ligne pour la prochaine commande
    */
   public static void display_prompt(){
-      System.out.print("[c]Connect [D]Duplication [d]Disconnect [l]Logs \n"
-      									+ "[la]ListApps [e]ExecApp [t]Test [w]Who [i]Info [q]Quit : ");
+    System.out.print("[c]Connect [D]Duplication [d]Disconnect [l]Logs \n"
+    									+ "[la]ListApps [e]ExecApp [t]Test [w]Who [i]Info [q]Quit : ");
   }
   
   /**
    * Stock la commande complete dans argl
    */
   public static void read_command(){
-      try{
-          argl = input.nextLine();   
-      }catch (NoSuchElementException e){ // Exception levé lors de Ctrl+D
-          argl = "exit";
-          System.out.println("Bye.");
-      }
+    try{
+        argl = input.nextLine();   
+    }catch (NoSuchElementException e){ // Exception levé lors de Ctrl+D
+        argl = "exit";
+        System.out.println("Bye.");
+    }
   }
   
   /**
    * Découpe la commande en arguments distincts
    */
   public static void tokenize_command(){
-      argv = new ArrayList<String>(Arrays.asList(argl.split("\\s+")));
+    argv = new ArrayList<String>(Arrays.asList(argl.split("\\s+")));
   }
 
   /**

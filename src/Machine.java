@@ -193,7 +193,8 @@ public class Machine implements Runnable{
 								isa.getAddress().getHostAddress(), isa.getPort());
 
 						}
-
+					}catch (MalformedMsgException e){
+						//System.out.println("udp_listening: malformed message");
 					}catch (Exception e){
 						break;
 					}
@@ -650,8 +651,6 @@ public class Machine implements Runnable{
 		msg.setSize_mess((short)st_msg.length());
 		msg.setMessage_app(st_msg);
 
-		System.out.println(msg);
-
 		try{
 			udp_sendMsg(msg);
 		}catch(Exception e){
@@ -660,7 +659,7 @@ public class Machine implements Runnable{
 	}
 
 	/**
-   * Application de transfère de fichiers
+   * Application de transfert de fichiers
    */
 	public void app_TRANS(){
 	}

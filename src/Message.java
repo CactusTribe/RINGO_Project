@@ -46,11 +46,12 @@ public class Message{
 	 *
 	 * Construit un message à partir d'une string
 	 * @param mess Message à construire
+	 * @throws MalformedMsgException Lance une exception si le message est malformé
 	 */
-	public Message(String mess){
-		if(mess.length() <= 512){
-			ArrayList<String> argv = new ArrayList<String>(Arrays.asList(mess.split("\\s+")));
+	public Message(String mess) throws MalformedMsgException{
+		ArrayList<String> argv = new ArrayList<String>(Arrays.asList(mess.split("\\s+")));
 
+		try{
 			this.prefix = ProtocoleToken.valueOf(argv.get(0));
 
 			switch(prefix){
@@ -131,6 +132,9 @@ public class Message{
 				case NOTC:
 				break;
 			}
+
+		}catch (Exception e){
+			throw new MalformedMsgException();
 		}
 	}
 
@@ -469,6 +473,53 @@ public class Message{
 		return this.port_diff;
 	}
 
+	/**
+	 * Retourne le size_mess
+	 * @return size_mess
+	 */
+	public short getSize_mess(){
+		return this.size_mess;
+	}
+
+	/**
+	 * Retourne le size_content
+	 * @return size_content
+	 */
+	public short getSize_content(){
+		return this.size_content;
+	}
+
+	/**
+	 * Retourne le size_nom
+	 * @return size_nom
+	 */
+	public short getSize_nom(){
+		return this.size_nom;
+	}
+
+	/**
+	 * Retourne le num_mess
+	 * @return num_mess
+	 */
+	public int getNum_mess(){
+		return this.num_mess;
+	}
+
+	/**
+	 * Retourne le no_mess
+	 * @return no_mess
+	 */
+	public int getNo_mess(){
+		return this.no_mess;
+	}
+
+	/**
+	 * Retourne le message_app
+	 * @return message_app
+	 */
+	public String getMessage_app(){
+		return this.message_app;
+	}
 }
 
 
