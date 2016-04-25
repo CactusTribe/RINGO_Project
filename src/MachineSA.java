@@ -67,7 +67,8 @@ public class MachineSA{
    * Affiche une nouvelle ligne pour la prochaine commande
    */
   public static void display_prompt(){
-      System.out.print("[c]Connect [D]Duplication [d]Disconnect [l]Logs \n[t]Test [w]Who [i]Info [q]Quit : ");
+      System.out.print("[c]Connect [D]Duplication [d]Disconnect [l]Logs \n"
+      									+ "[la]ListApps [e]ExecApp [t]Test [w]Who [i]Info [q]Quit : ");
   }
   
   /**
@@ -125,10 +126,42 @@ public class MachineSA{
     else if(argv.get(0).equals("l")){
 
 			System.out.println("");
+			System.out.println("  Logs of machine ");
+			System.out.println("  ----------------------------------------------");
 			LinkedList<String> logs = m.getLogs();
 			for(int i=0; i<logs.size(); i++)
 				System.out.println("  |"+logs.get(i));
 			System.out.println("\n");
+
+    }
+    else if(argv.get(0).equals("la")){
+
+			System.out.println("");
+			System.out.println("  Applications installed ");
+			System.out.println("  ----------------------------------------------");
+			LinkedList<AppToken> apps = m.getApps();
+			for(int i=0; i<apps.size(); i++)
+				System.out.println("  | "+i+" - "+apps.get(i));
+			System.out.println("\n");
+
+    }
+    else if(argv.get(0).equals("e")){
+    	if(argv.size() <= 1)
+  			System.out.println("Usage: e <num_app>");
+  		else{
+	    	try{
+		    	int num_app = Integer.parseInt(argv.get(1));
+					LinkedList<AppToken> apps = m.getApps();
+					if(num_app < apps.size())
+						m.executeApp(apps.get(num_app));
+					else
+						System.out.println("Error : application doesn't exist.");
+
+				} catch (Exception e){
+					System.out.println(e);
+					System.out.println("Usage: e <num_app>");
+				}
+			}
 
     }
     else if(argv.get(0).equals("t")){

@@ -16,7 +16,7 @@ public class Message{
 	private String ip_diff = "";
 
 	private String id = "";
-	private String id_app = "";
+	private AppToken id_app = null;
 
 	private long idm = 0;
 	private long id_trans = 0;
@@ -60,33 +60,51 @@ public class Message{
 					this.port = (short)Integer.parseInt(argv.get(2));
 					this.port_diff = (short)Integer.parseInt(argv.get(4));
 				break;
+
 				case NEWC:
 					this.ip = argv.get(1);
 					this.port = (short)Integer.parseInt(argv.get(2));
 				break;
+
 				case ACKC:
 				break;
+
 				case APPL:
 					this.idm = Integer.parseInt(argv.get(1));
-					this.id_app = argv.get(2);
-					this.message_app = argv.get(3);
+					this.id_app = AppToken.valueOf(argv.get(2).replace("#",""));
+
+					if(this.id_app == AppToken.DIFF){
+						this.size_mess = (short)Integer.parseInt(argv.get(3));
+						String tmp_msg = "";
+						for(int i=4; i < argv.size(); i++)
+							tmp_msg += argv.get(i)+" ";
+						this.message_app = tmp_msg.substring(0, tmp_msg.length()-1);
+					}
+					else if(this.id_app == AppToken.TRANS){
+						
+					}
 				break;
+
 				case TEST:
 					this.idm = Integer.parseInt(argv.get(1));
 					this.ip_diff = argv.get(2);
 					this.port_diff = (short)Integer.parseInt(argv.get(3));
 				break;
+
 				case DOWN:
 				break;
+
 				case WHOS:
 					this.idm = Integer.parseInt(argv.get(1));
 				break;
+
 				case MEMB:
 					this.idm = Integer.parseInt(argv.get(1));
 					this.id = argv.get(2);
 					this.ip = argv.get(3);
 					this.port = (short)Integer.parseInt(argv.get(4));
 				break;
+
 				case GBYE:
 					this.idm = Integer.parseInt(argv.get(1));
 					this.ip = argv.get(2);
@@ -94,18 +112,22 @@ public class Message{
 					this.ip_succ = argv.get(4);
 					this.port_succ = (short)Integer.parseInt(argv.get(5));
 				break;
+
 				case EYBG:
 					this.idm = Integer.parseInt(argv.get(1));
 				break;
+
 				case DUPL:
 					this.ip = argv.get(1);
 					this.port = (short)Integer.parseInt(argv.get(2));
 					this.ip_diff = argv.get(3);
 					this.port_diff = (short)Integer.parseInt(argv.get(4));
 				break;
+
 				case ACKD:
 					this.port = (short)Integer.parseInt(argv.get(1));
 				break;
+
 				case NOTC:
 				break;
 			}
@@ -124,48 +146,66 @@ public class Message{
 				mess = String.format("%s %s %04d %s %04d\n",
 					prefix, ip, port, ip_diff, port_diff);
 			break;
+
 			case NEWC:
 				mess = String.format("%s %s %04d\n",
 					prefix, ip, port);
 			break;
+
 			case ACKC:
 				mess = String.format("%s\n",prefix);
 			break;
+
 			case APPL:
-				mess = String.format("%s %s %s %s\n",
-					prefix, Tools.longToStr8b(idm), id_app, message_app);
+				if(this.id_app == AppToken.DIFF){
+					mess = String.format("%s %s %s %03d %s\n",
+						prefix, Tools.longToStr8b(idm), id_app, size_mess, message_app);				
+				}
+				else if(this.id_app == AppToken.TRANS){
+					mess = String.format("%s %s %s\n",
+						prefix, Tools.longToStr8b(idm), id_app);	
+				}
 			break;
+
 			case TEST:
 				mess = String.format("%s %s %s %04d\n",
 					prefix, Tools.longToStr8b(idm), ip_diff, port_diff);
 			break;
+
 			case DOWN:
 				mess = String.format("%s\n", prefix);
 			break;
+
 			case WHOS:
 				mess = String.format("%s %s\n", 
 					prefix, Tools.longToStr8b(idm));
 			break;
+
 			case MEMB:
 				mess = String.format("%s %s %s %s %04d\n", 
 					prefix, Tools.longToStr8b(idm), id, ip, port);
 			break;
+
 			case GBYE:
 				mess = String.format("%s %s %s %04d %s %04d\n", 
 					prefix, Tools.longToStr8b(idm), ip, port, ip_succ, port_succ);
 			break;
+
 			case EYBG:
 				mess = String.format("%s %s\n", 
 					prefix, Tools.longToStr8b(idm));
 			break;
+
 			case DUPL:
 				mess = String.format("%s %s %04d %s %04d\n", 
 					prefix,  ip, port, ip_diff, port_diff);
 			break;
+
 			case ACKD:
 				mess = String.format("%s %04d\n", 
 					prefix, port);
 			break;
+
 			case NOTC:
 				mess = String.format("%s\n", prefix);
 			break;
@@ -188,17 +228,18 @@ public class Message{
 				+" - PORT_DIFF : %04d\n"
 				+" - IDM : %08d\n"
 				+" - ID_TRANS : %08d\n"
-				+" - ID_APP : %08d\n"
-				+" - ID : %08d\n"
+				+" - ID_APP : %s\n"
+				+" - ID : %s\n"
 				+" - SIZE_MESS : %03d\n"
 				+" - SIZE_NOM : %02d\n"
 				+" - NUM_MESS : %08d\n"
 				+" - NO_MESS : %08d\n"
 				+" - SIZE_CONTENT : %03d\n"
+				+" - MESS_APP : %s\n"
 				+"#########################################\n",
 				prefix,ip,ip_succ,ip_diff,port,port_succ,port_diff,
 				idm,id_trans,id_app,id,size_mess,size_nom,num_mess,
-				no_mess,size_content);
+				no_mess,size_content,message_app);
 	
 		System.out.println(mess);
 	}
@@ -250,11 +291,8 @@ public class Message{
 	 * Modifie l'id_app
 	 * @param id_app Nouvelle id_app
 	 */
-	public void setId_app(String id_app){
-		if(id_app.length() > 8)
-			this.id_app = id_app.substring(0, 8);
-		else
-			this.id_app = id_app;
+	public void setId_app(AppToken id_app){
+		this.id_app = id_app;
 	}
 
 	/**
@@ -295,7 +333,53 @@ public class Message{
 		this.port_diff = port_diff;
 	}
 
+	/**
+	 * Modifie le size_mess
+	 * @param size Nouvelle taille
+	 */
+	public void setSize_mess(short size){
+		this.size_mess = size;
+	}
 
+	/**
+	 * Modifie le size_content
+	 * @param size Nouvelle taille
+	 */
+	public void setSize_content(short size){
+		this.size_content = size;
+	}
+
+	/**
+	 * Modifie le size_nom
+	 * @param size Nouvelle taille
+	 */
+	public void setSize_nom(short size){
+		this.size_nom = size;
+	}
+
+	/**
+	 * Modifie le num_mess
+	 * @param num Nombre de messages
+	 */
+	public void setNum_mess(int num){
+		this.num_mess = num;
+	}
+
+	/**
+	 * Modifie le no_mess
+	 * @param no Numero du message
+	 */
+	public void setNo_mess(int no){
+		this.no_mess = no;
+	}
+
+	/**
+	 * Modifie le message d'application
+	 * @param msg Nouveau msg
+	 */
+	public void setMessage_app(String msg){
+		this.message_app = msg;
+	}
 
 	/**
 	 * Retourne le prefixe
@@ -341,7 +425,7 @@ public class Message{
 	 * Retourne l'id_app
 	 * @return id_app
 	 */
-	public String getId_app(){
+	public AppToken getId_app(){
 		return this.id_app;
 	}
 	

@@ -56,7 +56,9 @@ public class Machine implements Runnable{
 	// Liste des messages envoyés
 	private Hashtable<Integer,String> sent_msg;
 	// Historique des recus
-	private LinkedList<String> logs = new LinkedList<String>();
+	private LinkedList<String> logs;
+	// Liste des applications disponibles
+	private LinkedList<AppToken> apps;
 
 	/**
    * Constructeur
@@ -76,6 +78,12 @@ public class Machine implements Runnable{
 		this.multdif_port = diff_port;
 		this.received_msg = new Hashtable<Integer,String>();
 		this.sent_msg = new Hashtable<Integer,String>();
+		this.logs = new LinkedList<String>();
+
+		// Ajout des applications supportées
+		this.apps = new LinkedList<AppToken>();
+		this.apps.add(AppToken.DIFF);
+		this.apps.add(AppToken.TRANS);
 
 		this.udp_connected = false;
 		this.tcp_connected = false;
@@ -215,7 +223,7 @@ public class Machine implements Runnable{
 
 						// Ajout dans les logs
 						toLogs(msg.toString(), ProtocoleToken.DIFF, ProtocoleToken.RECEIVED, 
-							isa.getHostName(), isa.getPort());
+							isa.getAddress().getHostAddress(), isa.getPort());
 
 					}catch (Exception e){
 						break;
@@ -363,6 +371,7 @@ public class Machine implements Runnable{
 			break;
 
 			case APPL:
+				udp_sendMsg(msg);
 			break;
 
 			case WHOS:
@@ -600,6 +609,63 @@ public class Machine implements Runnable{
 	}
 
 	/**
+   * Méthode permetant d'executer une application
+   * @param app Identifiant de l'application
+   */
+	public void executeApp(AppToken app){
+		if(this.apps.contains(app)){
+			System.out.println(" -> Execution of "+ app);
+
+			switch(app){
+				case DIFF:
+					app_DIFF();
+				break;
+				case TRANS:
+					app_TRANS();
+				break;
+			}
+
+		}
+		else{
+			System.out.println(" -> Error: "+ app +" is not supported.");
+		}
+	}
+
+	/**
+   * Application de diffusion
+   */
+	public void app_DIFF(){
+		String st_msg = "";
+		Scanner sc = new Scanner(System.in);
+
+		System.out.println("");
+		System.out.print("  | Message : ");
+		st_msg = sc.nextLine();
+		System.out.println("");
+
+		Message msg = new Message();
+		msg.setPrefix(ProtocoleToken.APPL);
+		msg.setIdm();
+		msg.setId_app(AppToken.DIFF);
+		msg.setSize_mess((short)st_msg.length());
+		msg.setMessage_app(st_msg);
+
+		System.out.println(msg);
+
+		try{
+			udp_sendMsg(msg);
+		}catch(Exception e){
+			System.out.println(e);
+		}
+	}
+
+	/**
+   * Application de transfère de fichiers
+   */
+	public void app_TRANS(){
+	}
+
+	/**
    * Méthode permetant d'envoyer un WHOS
    * @throws IOException Lance une exception en cas de problème
    */
@@ -641,7 +707,6 @@ public class Machine implements Runnable{
 			diff_sendMsg(ProtocoleToken.DOWN);
 		}
 	}
-
 
 	/**
    * Inscrit un message dans les logs
@@ -696,6 +761,14 @@ public class Machine implements Runnable{
    */
 	public LinkedList<String> getLogs(){
 		return this.logs;
+	}
+
+	/**
+   * Renvoi la liste des applications disponibles
+   * @return apps
+   */
+	public LinkedList<AppToken> getApps(){
+		return this.apps;
 	}
 
 	/**

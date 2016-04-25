@@ -57,7 +57,8 @@ public class RINGO_Project{
    * Affiche une nouvelle ligne pour la prochaine commande
    */
   public static void display_prompt(){
-      System.out.print("[a]Add [r]Remove [c]Connect [d]Duplication [D]Disconnect\n[l]Logs [W]Write [t]Test [w]Who [s]Stats [q]Quit : ");
+      System.out.print("[a]Add [r]Remove [c]Connect [d]Duplication [D]Disconnect [l]Logs\n"
+      									+ "[la]ListApps [e]ExecApp [W]Write [t]Test [w]Who [s]Stats [q]Quit : ");
   }
   
   /**
@@ -104,6 +105,12 @@ public class RINGO_Project{
     }
     else if(argv.get(0).equals("l")){
     	printLogs();
+    }
+    else if(argv.get(0).equals("la")){
+    	printApps();
+    }
+    else if(argv.get(0).equals("e")){
+    	execApp();
     }
     else if(argv.get(0).equals("W")){
       writeMessage();
@@ -154,8 +161,8 @@ public class RINGO_Project{
 				int num_machine = Integer.parseInt(argv.get(1));
 				if(num_machine < machines.size()){
 					System.out.println("");
-					System.out.println("  Machine "+num_machine);
-					System.out.println("  *------------------*");
+					System.out.println("  Logs of machine "+num_machine);
+					System.out.println("  ----------------------------------------------");
 					LinkedList<String> logs = machines.get(num_machine).getLogs();
 					for(int i=0; i<logs.size(); i++)
 						System.out.println("  |"+logs.get(i));
@@ -171,6 +178,68 @@ public class RINGO_Project{
 			}
 		}	
 	}
+
+	/**
+   * Affiche les applications d'une machine
+   */
+	public static void printApps(){
+	  if(argv.size() <= 1)
+  		System.out.println("Usage: la <num_machine>");
+  	else{
+			try { 
+
+				int num_machine = Integer.parseInt(argv.get(1));
+				if(num_machine < machines.size()){
+					System.out.println("");
+					System.out.println("  Applications installed on machine "+num_machine);
+					System.out.println("  ----------------------------------------------");
+					LinkedList<AppToken> apps = machines.get(num_machine).getApps();
+					for(int i=0; i<apps.size(); i++)
+						System.out.println("  | "+i+" - "+apps.get(i));
+					System.out.println("\n");
+				}
+				else{
+					System.out.println("Error : machine doesn't exist.");
+				}
+
+			}
+			catch (Exception e){
+			 System.out.println("Usage: la <num_machine>");
+			}
+		}	
+	}
+
+	/**
+   * Execute une application
+   */
+	public static void execApp(){
+		if(argv.size() <= 2)
+  		System.out.println("Usage: e <num_machine> <num_app>");
+  	else{
+  		try{
+
+				int num_machine = Integer.parseInt(argv.get(1));
+				int num_app = Integer.parseInt(argv.get(2));
+
+				if(num_machine < machines.size()){
+					LinkedList<AppToken> apps = machines.get(num_machine).getApps();
+
+					if(num_app < apps.size())
+						machines.get(num_machine).executeApp(apps.get(num_app));
+					else
+						System.out.println("Error : application doesn't exist.");
+
+				}
+				else{
+					System.out.println("Error : machine doesn't exist.");
+				}
+
+  		}catch (Exception e){
+  			System.out.println("Usage: e <num_machine> <num_app>");
+  		}
+  	}	
+	}
+
 
 	/**
    * Ajoute une nouvelle machine avec des valeurs par défaut si les champs
