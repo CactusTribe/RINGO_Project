@@ -1,6 +1,8 @@
 import java.util.*;
 import java.net.*;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 
@@ -12,6 +14,9 @@ import java.text.SimpleDateFormat;
  */
 
 public class Machine implements Runnable{
+
+	public static final int MAX_SIZE_MSG = 512;
+	public static final int MAX_SIZE_FILE_CONTENT = 460;
 
 	// Informations de connexion
 	private String ident;
@@ -59,6 +64,12 @@ public class Machine implements Runnable{
 	private LinkedList<String> logs;
 	// Liste des applications disponibles
 	private LinkedList<AppToken> apps;
+
+	// Application TRANS
+	private int cur_file_trans; // L'id de transaction de fichier courante
+	private int nb_msg_total; // Nombre de messages à recevoir
+	private int nb_msg_received; // Nombre de messages à recevoir
+
 
 	/**
    * Constructeur
@@ -173,7 +184,7 @@ public class Machine implements Runnable{
 					try{
 
 						// Attente d'un paquet sur le port UDP
-						byte[] data = new byte[512];
+						byte[] data = new byte[MAX_SIZE_MSG];
 						DatagramPacket paquet = new DatagramPacket(data, data.length);
 						dso.receive(paquet);
 
@@ -196,6 +207,7 @@ public class Machine implements Runnable{
 					}catch (MalformedMsgException e){
 						//System.out.println("udp_listening: malformed message");
 					}catch (Exception e){
+						e.printStackTrace();
 						break;
 					}
 				}
@@ -372,7 +384,14 @@ public class Machine implements Runnable{
 			break;
 
 			case APPL:
-				udp_sendMsg(msg);
+
+				if(msg.getId_app() == AppToken.DIFF){
+					udp_sendMsg(msg);
+				}
+				else if(msg.getId_app() == AppToken.TRANS){
+					trans_readMsg(msg);
+				}
+
 			break;
 
 			case WHOS:
@@ -615,7 +634,7 @@ public class Machine implements Runnable{
    */
 	public void executeApp(AppToken app){
 		if(this.apps.contains(app)){
-			System.out.println(" -> Execution of "+ app);
+			System.out.println("\n -> Execution of "+ app);
 
 			switch(app){
 				case DIFF:
@@ -662,6 +681,99 @@ public class Machine implements Runnable{
    * Application de transfert de fichiers
    */
 	public void app_TRANS(){
+		String file_name = "";
+		Scanner sc = new Scanner(System.in);
+
+		System.out.println("");
+		System.out.print("  | File : ");
+		file_name = sc.nextLine();
+		System.out.println("");
+
+		Message msg = new Message();
+		msg.setPrefix(ProtocoleToken.APPL);
+		msg.setIdm();
+		msg.setId_app(AppToken.TRANS);
+		msg.setTrans_token(TransToken.REQ);
+		msg.setSize_nom((short)file_name.length());
+		msg.setNom_fichier(file_name);
+
+		try{
+			udp_sendMsg(msg);
+		}catch(Exception e){
+			System.out.println(e);
+		}
+	}
+
+	/**
+   * Méthode interpretant un message d'application TRANS
+   * @throws IOException Lance une exception en cas de problème
+   */
+	public void trans_readMsg(Message msg) throws IOException{
+		switch(msg.getTrans_token()){
+
+			case REQ:
+
+				String file_name = msg.getNom_fichier();
+				File file = new File(file_name);
+
+				if(file.isFile()){
+
+					int nb_messages = (int)(file.length() / MAX_SIZE_FILE_CONTENT) + 1;
+
+					Message confirm = new Message();
+					confirm.setPrefix(ProtocoleToken.APPL);
+					confirm.setIdm();
+					confirm.setId_app(AppToken.TRANS);
+					confirm.setTrans_token(TransToken.ROK);
+					confirm.setId_trans();
+					confirm.setSize_nom((short)file_name.length());
+					confirm.setNom_fichier(file_name);
+					confirm.setNum_mess(nb_messages);
+
+					udp_sendMsg(confirm);
+
+					// Division du fichier en morceaux
+					String content = new String(Files.readAllBytes(Paths.get(file_name)));
+					ArrayList<String> p_content = new ArrayList<String>();
+
+					int len = content.length();
+					for(int i=0; i < len; i += MAX_SIZE_FILE_CONTENT){
+						p_content.add( content.substring(i, Math.min(len, i + MAX_SIZE_FILE_CONTENT)) );
+					}
+
+					Message p_file = new Message();
+					p_file.setPrefix(ProtocoleToken.APPL);
+					p_file.setId_app(AppToken.TRANS);
+					p_file.setTrans_token(TransToken.SEN);
+					p_file.setId_trans(confirm.getId_trans());
+					
+					int no_mess = 0;
+			    for(String part : p_content) {
+
+			    	p_file.setIdm();
+			      p_file.setNo_mess(no_mess);
+						p_file.setSize_content((short)part.length());
+						p_file.setFile_content(part);
+
+						System.out.println(p_file.toString().length());
+
+						udp_sendMsg(p_file);
+						no_mess++;
+			    }
+
+				}
+				else{
+					udp_sendMsg(msg);
+				}
+
+			break;
+
+			case ROK:
+			break;
+
+			case SEN:
+			break;
+		}
 	}
 
 	/**
@@ -727,7 +839,7 @@ public class Machine implements Runnable{
 			st_direct = "sent to";
 
 		logs.add(String.format(" > (%s) %s %d bytes %s %s:%04d : \n  | - [ %s ]\n  | ", 
-			str_cur_time, mode ,msg.length(), st_direct, ip, port,
+			str_cur_time, mode , msg.getBytes().length, st_direct, ip, port,
 			 ((msg.length() > 100) ? msg.substring(0,100)+".." : msg.substring(0,msg.length()-1))));
 
 	}

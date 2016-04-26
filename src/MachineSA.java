@@ -137,7 +137,7 @@ public class MachineSA{
     else if(argv.get(0).equals("la")){
 
 			System.out.println("");
-			System.out.println("  Applications installed ");
+			System.out.println("  Installed applications ");
 			System.out.println("  ----------------------------------------------");
 			LinkedList<AppToken> apps = m.getApps();
 			for(int i=0; i<apps.size(); i++)

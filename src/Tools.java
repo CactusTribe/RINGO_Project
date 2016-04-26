@@ -54,11 +54,7 @@ public class Tools{
 	 * @return Nombre sous forme de chaine
 	 */
 	public static String intToStr8b(int n){
-		String nstr = Integer.toString(n);
-		if(nstr.length() > 8)
-			return nstr.substring(nstr.length()-8 ,nstr.length());
-		else
-			return nstr;
+		return String.format("%08d", Math.abs(n % 100000000));
 	}
 
 	/**
@@ -67,11 +63,7 @@ public class Tools{
 	 * @return Nombre sous forme de chaine
 	 */
 	public static String longToStr8b(long l){
-		String lstr = Long.toString(l);
-		if(lstr.length() > 8)
-			return lstr.substring(lstr.length()-8 ,lstr.length());
-		else
-			return lstr;
+		return String.format("%08d", Math.abs(l % 100000000));
 	}
 
 }

@@ -8,31 +8,33 @@ import java.util.*;
  */
 public class Message{
 
-	// Champs du message
+	// Champs du message (Protocole)
 	private ProtocoleToken prefix = null;
-
 	private String ip = "";
 	private String ip_succ = "";
 	private String ip_diff = "";
-
 	private String id = "";
-	private AppToken id_app = null;
 
 	private long idm = 0;
-	private long id_trans = 0;
-
 	private short port = 0;
 	private short port_succ = 0;
 	private short port_diff = 0;
 	
+	// Champs du message (Applications)
+	private AppToken id_app = null;
+	private TransToken trans_token = null;
+
 	private short size_mess = 0;
 	private short size_nom = 0;
 	private short size_content = 0;
 
+	private long id_trans = 0;
 	private int num_mess = 0;
 	private int no_mess = 0;
 	
+	private String nom_fichier = "";
 	private String message_app = "";
+	private String file_content = "";
 
 	/**
 	 * Constructeur par defaut
@@ -74,15 +76,55 @@ public class Message{
 					this.idm = Integer.parseInt(argv.get(1));
 					this.id_app = AppToken.valueOf(argv.get(2).replace("#",""));
 
+					// Mise en forme pour l'application DIFF
 					if(this.id_app == AppToken.DIFF){
+
 						this.size_mess = (short)Integer.parseInt(argv.get(3));
 						String tmp_msg = "";
 						for(int i=4; i < argv.size(); i++)
 							tmp_msg += argv.get(i)+" ";
 						this.message_app = tmp_msg.substring(0, tmp_msg.length()-1);
+
 					}
+					// Mise en forme pour l'application TRANS
 					else if(this.id_app == AppToken.TRANS){
-						
+
+						this.trans_token = TransToken.valueOf(argv.get(3));
+
+						// TRANS Requete
+						if(this.trans_token == TransToken.REQ){
+
+							this.size_nom = (short)Integer.parseInt(argv.get(4));
+							String tmp_file_name = "";
+							for(int i=5; i < argv.size(); i++)
+								tmp_file_name += argv.get(i)+" ";
+							this.nom_fichier = tmp_file_name.substring(0, tmp_file_name.length()-1);			
+
+						}
+						// TRANS Confirm
+						else if(this.trans_token == TransToken.ROK){
+
+							this.id_trans = Integer.parseInt(argv.get(4));
+							this.size_nom = (short)Integer.parseInt(argv.get(5));
+							String tmp_file_name = "";
+							for(int i=6; i < argv.size()-1; i++)
+								tmp_file_name += argv.get(i)+" ";
+							this.nom_fichier = tmp_file_name.substring(0, tmp_file_name.length()-1);
+							this.num_mess = Integer.parseInt(argv.get(argv.size()-1));
+
+						}
+						// TRANS Envoi
+						else if(this.trans_token == TransToken.SEN){
+
+							this.id_trans = Integer.parseInt(argv.get(4));
+							this.no_mess = Integer.parseInt(argv.get(5));
+							this.size_content = (short)Integer.parseInt(argv.get(6));
+							String tmp_file_content = "";
+							for(int i=7; i < argv.size(); i++)
+								tmp_file_content += argv.get(i)+" ";
+							this.file_content = tmp_file_content.substring(0, tmp_file_content.length()-1);
+
+						}
 					}
 				break;
 
@@ -166,8 +208,20 @@ public class Message{
 						prefix, Tools.longToStr8b(idm), id_app, size_mess, message_app);				
 				}
 				else if(this.id_app == AppToken.TRANS){
-					mess = String.format("%s %s %s\n",
-						prefix, Tools.longToStr8b(idm), id_app);	
+
+					if(this.trans_token == TransToken.REQ){
+						mess = String.format("%s %s %s %s %02d %s\n",
+							prefix, Tools.longToStr8b(idm), id_app, trans_token, size_nom, nom_fichier);	
+					}
+					else if(this.trans_token == TransToken.ROK){
+						mess = String.format("%s %s %s %s %s %02d %s %08d\n",
+							prefix, Tools.longToStr8b(idm), id_app, trans_token, Tools.longToStr8b(id_trans), size_nom, nom_fichier, num_mess);
+					}
+					else if(this.trans_token == TransToken.SEN){
+						mess = String.format("%s %s %s %s %s %08d %03d %s\n",
+							prefix, Tools.longToStr8b(idm), id_app, trans_token, Tools.longToStr8b(id_trans), no_mess, size_content, file_content);
+					}
+
 				}
 			break;
 
@@ -303,14 +357,22 @@ public class Message{
 	 * Donne la valeur courante du timestamp a idm
 	 */
 	public void setIdm(){
-		this.idm = (new Date().getTime());
+		this.idm = ((Long)System.nanoTime()).hashCode();
 	}
 
 	/**
 	 * Donne la valeur courante du timestamp a id_trans
 	 */
 	public void setId_trans(){
-		this.id_trans = (new Date().getTime());
+		this.id_trans = ((Long)System.nanoTime()).hashCode();
+	}
+
+	/**
+	 * Donne la valeur courante du timestamp a id_trans
+	 * @param id Nouvel ID
+	 */
+	public void setId_trans(long id){
+		this.id_trans = id;
 	}
 
 	/**
@@ -378,11 +440,35 @@ public class Message{
 	}
 
 	/**
+	 * Modifie le nom du fichier
+	 * @param name Nouveau nom
+	 */
+	public void setNom_fichier(String name){
+		this.nom_fichier = name;
+	}
+
+	/**
 	 * Modifie le message d'application
 	 * @param msg Nouveau msg
 	 */
 	public void setMessage_app(String msg){
 		this.message_app = msg;
+	}
+
+	/**
+	 * Modifie le contenu du fichier
+	 * @param content Nouveau contenu
+	 */
+	public void setFile_content(String content){
+		this.file_content = content;
+	}
+
+	/**
+	 * Modifie le token de l'application transfert
+	 * @param token Nouveau token
+	 */
+	public void setTrans_token(TransToken token){
+		this.trans_token = token;
 	}
 
 	/**
@@ -514,13 +600,34 @@ public class Message{
 	}
 
 	/**
+	 * Retourne le nom_fichier
+	 * @return nom_fichier
+	 */
+	public String getNom_fichier(){
+		return this.nom_fichier;
+	}
+
+	/**
 	 * Retourne le message_app
 	 * @return message_app
 	 */
 	public String getMessage_app(){
 		return this.message_app;
 	}
+
+	/**
+	 * Retourne le file_content
+	 * @return file_content
+	 */
+	public String getFile_content(){
+		return this.file_content;
+	}
+
+	/**
+	 * Retourne le token de transfert
+	 * @return trans_token
+	 */
+	public TransToken getTrans_token(){
+		return this.trans_token;
+	}
 }
-
-
-

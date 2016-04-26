@@ -191,7 +191,7 @@ public class RINGO_Project{
 				int num_machine = Integer.parseInt(argv.get(1));
 				if(num_machine < machines.size()){
 					System.out.println("");
-					System.out.println("  Applications installed on machine "+num_machine);
+					System.out.println("  Installed applications on machine "+num_machine);
 					System.out.println("  ----------------------------------------------");
 					LinkedList<AppToken> apps = machines.get(num_machine).getApps();
 					for(int i=0; i<apps.size(); i++)
