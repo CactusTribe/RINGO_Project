@@ -16,7 +16,7 @@ import java.text.SimpleDateFormat;
 public class Machine implements Runnable{
 
 	public static final int MAX_SIZE_MSG = 512;
-	public static final int MAX_SIZE_FILE_CONTENT = 460;
+	public static final int MAX_SIZE_FILE_CONTENT = 462;
 
 	// Informations de connexion
 	private String ident;
@@ -68,8 +68,9 @@ public class Machine implements Runnable{
 	// Application TRANS
 	private int cur_file_trans; // L'id de transaction de fichier courante
 	private int nb_msg_total; // Nombre de messages à recevoir
-	private int nb_msg_received; // Nombre de messages à recevoir
-
+	private int nb_msg_received; // Nombre de messages recus
+	private String name_file_receveid = ""; // Nom du fichier recu
+	private ArrayList<byte[]> file_receveid; // Fichier recu
 
 	/**
    * Constructeur
@@ -206,9 +207,10 @@ public class Machine implements Runnable{
 						}
 					}catch (MalformedMsgException e){
 						//System.out.println("udp_listening: malformed message");
+					}catch (SocketException e){
+						break;
 					}catch (Exception e){
 						e.printStackTrace();
-						break;
 					}
 				}
 			}
@@ -223,7 +225,7 @@ public class Machine implements Runnable{
 					try{
 
 						// Attente d'un paquet sur le port UDP multicast
-						byte[] data = new byte[512];
+						byte[] data = new byte[MAX_SIZE_MSG];
 						DatagramPacket paquet = new DatagramPacket(data, data.length);
 						mso.receive(paquet);
 
@@ -508,10 +510,12 @@ public class Machine implements Runnable{
    * @throws IOException Lance une exception en cas de problème
    */
 	public void udp_sendMsg(Message msg) throws IOException{
+
 		if(msg != null){
 
 			InetSocketAddress isa = null;
 			DatagramPacket paquet = null;
+			byte[] data = msg.toString().getBytes();
 
 			// Si la machine est un duplicateur
 			if(isDuplicator()){
@@ -523,24 +527,24 @@ public class Machine implements Runnable{
 					else
 						isa = new InetSocketAddress(next_ip_dup, udp_nextPort_dup);
 
-					paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+					paquet = new DatagramPacket(data, data.length, isa);
 					dso.send(paquet);
 				}
 				else{
 					// Envoi sur l'anneau principal
 					isa = new InetSocketAddress(next_ip, udp_nextPort);
-					paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+					paquet = new DatagramPacket(data, data.length, isa);
 					dso.send(paquet);	
 
 					// Envoi sur le deuxieme anneau
 					isa = new InetSocketAddress(next_ip_dup, udp_nextPort_dup);
-					paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+					paquet = new DatagramPacket(data, data.length, isa);
 					dso.send(paquet);
 				}
 			}
 			else{
 				isa = new InetSocketAddress(next_ip, udp_nextPort);
-				paquet = new DatagramPacket(msg.toString().getBytes(), msg.toString().length(), isa);
+				paquet = new DatagramPacket(data, data.length, isa);
 				dso.send(paquet);	
 			} 
 
@@ -716,6 +720,7 @@ public class Machine implements Runnable{
 				String file_name = msg.getNom_fichier();
 				File file = new File(file_name);
 
+				// Si le fichier existe
 				if(file.isFile()){
 
 					int nb_messages = (int)(file.length() / MAX_SIZE_FILE_CONTENT) + 1;
@@ -733,29 +738,28 @@ public class Machine implements Runnable{
 					udp_sendMsg(confirm);
 
 					// Division du fichier en morceaux
-					String content = new String(Files.readAllBytes(Paths.get(file_name)));
-					ArrayList<String> p_content = new ArrayList<String>();
+					byte[] content = Files.readAllBytes(Paths.get(file_name));
+					ArrayList<byte[]> p_content = new ArrayList<byte[]>();
+					int len = content.length;
 
-					int len = content.length();
 					for(int i=0; i < len; i += MAX_SIZE_FILE_CONTENT){
-						p_content.add( content.substring(i, Math.min(len, i + MAX_SIZE_FILE_CONTENT)) );
+						byte[] p = Arrays.copyOfRange(content, i, Math.min(len, i + MAX_SIZE_FILE_CONTENT));
+						p_content.add(p);
 					}
-
-					Message p_file = new Message();
-					p_file.setPrefix(ProtocoleToken.APPL);
-					p_file.setId_app(AppToken.TRANS);
-					p_file.setTrans_token(TransToken.SEN);
-					p_file.setId_trans(confirm.getId_trans());
 					
+					// Envoi de toutes les parties
 					int no_mess = 0;
-			    for(String part : p_content) {
+			    for(byte[] part : p_content) {
 
-			    	p_file.setIdm();
+						Message p_file = new Message();
+						p_file.setPrefix(ProtocoleToken.APPL);
+						p_file.setIdm();
+						p_file.setId_app(AppToken.TRANS);
+						p_file.setTrans_token(TransToken.SEN);
+						p_file.setId_trans(confirm.getId_trans());
 			      p_file.setNo_mess(no_mess);
-						p_file.setSize_content((short)part.length());
+						p_file.setSize_content((short)part.length);
 						p_file.setFile_content(part);
-
-						System.out.println(p_file.toString().length());
 
 						udp_sendMsg(p_file);
 						no_mess++;
@@ -763,15 +767,53 @@ public class Machine implements Runnable{
 
 				}
 				else{
+					// Si la machine n'a pas le fichier elle envoi au prochain
 					udp_sendMsg(msg);
 				}
 
 			break;
 
 			case ROK:
+
+				// Préparation pour recevoir le fichier
+				this.cur_file_trans = msg.getId_trans();
+				this.nb_msg_total = msg.getNum_mess();
+				this.nb_msg_received = 0;
+			 	this.name_file_receveid = "cpy_"+msg.getNom_fichier();
+			 	this.file_receveid = new ArrayList<byte[]>();
+
 			break;
 
 			case SEN:
+				// Si l'id de transmission du message correspond à notre transaction
+				if(msg.getId_trans() == this.cur_file_trans){
+
+					if(msg.getNo_mess() == nb_msg_received){
+						file_receveid.add(msg.getFile_content());
+						this.nb_msg_received++;
+					}
+
+					// Une fois que toute les parties sont présentes, on écrit le fichier
+					if(this.nb_msg_received == this.nb_msg_total){
+
+						FileOutputStream out = new FileOutputStream(this.name_file_receveid);
+						ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+						for(int i=0; i < file_receveid.size(); i++){
+							bos.write(file_receveid.get(i));
+						}
+
+						byte[] file_array = bos.toByteArray();
+						out.write(file_array);
+
+						out.close();
+						bos.close();
+					}
+				}
+				else{
+					udp_sendMsg(msg);
+				}
+
 			break;
 		}
 	}

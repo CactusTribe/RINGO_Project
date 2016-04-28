@@ -34,7 +34,7 @@ public class Message{
 	
 	private String nom_fichier = "";
 	private String message_app = "";
-	private String file_content = "";
+	private byte[] file_content;
 
 	/**
 	 * Constructeur par defaut
@@ -51,7 +51,7 @@ public class Message{
 	 * @throws MalformedMsgException Lance une exception si le message est malformé
 	 */
 	public Message(String mess) throws MalformedMsgException{
-		ArrayList<String> argv = new ArrayList<String>(Arrays.asList(mess.split("\\s+")));
+		ArrayList<String> argv = new ArrayList<String>(Arrays.asList(mess.split("\\s")));
 
 		try{
 			this.prefix = ProtocoleToken.valueOf(argv.get(0));
@@ -119,10 +119,8 @@ public class Message{
 							this.id_trans = Integer.parseInt(argv.get(4));
 							this.no_mess = Integer.parseInt(argv.get(5));
 							this.size_content = (short)Integer.parseInt(argv.get(6));
-							String tmp_file_content = "";
-							for(int i=7; i < argv.size(); i++)
-								tmp_file_content += argv.get(i)+" ";
-							this.file_content = tmp_file_content.substring(0, tmp_file_content.length()-1);
+							//this.file_content = mess.substring(49, mess.length()-1);
+							this.file_content = mess.substring(49, mess.length()-1).getBytes();
 
 						}
 					}
@@ -219,7 +217,7 @@ public class Message{
 					}
 					else if(this.trans_token == TransToken.SEN){
 						mess = String.format("%s %s %s %s %s %08d %03d %s\n",
-							prefix, Tools.longToStr8b(idm), id_app, trans_token, Tools.longToStr8b(id_trans), no_mess, size_content, file_content);
+							prefix, Tools.longToStr8b(idm), id_app, trans_token, Tools.longToStr8b(id_trans), no_mess, size_content, new String(file_content));
 					}
 
 				}
@@ -293,11 +291,12 @@ public class Message{
 				+" - NUM_MESS : %08d\n"
 				+" - NO_MESS : %08d\n"
 				+" - SIZE_CONTENT : %03d\n"
+				+" - CONTENT : %s\n"
 				+" - MESS_APP : %s\n"
 				+"#########################################\n",
 				prefix,ip,ip_succ,ip_diff,port,port_succ,port_diff,
 				idm,id_trans,id_app,id,size_mess,size_nom,num_mess,
-				no_mess,size_content,message_app);
+				no_mess,size_content, file_content, message_app);
 	
 		System.out.println(mess);
 	}
@@ -459,7 +458,7 @@ public class Message{
 	 * Modifie le contenu du fichier
 	 * @param content Nouveau contenu
 	 */
-	public void setFile_content(String content){
+	public void setFile_content(byte[] content){
 		this.file_content = content;
 	}
 
@@ -619,7 +618,7 @@ public class Message{
 	 * Retourne le file_content
 	 * @return file_content
 	 */
-	public String getFile_content(){
+	public byte[] getFile_content(){
 		return this.file_content;
 	}
 
