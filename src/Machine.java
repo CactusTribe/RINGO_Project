@@ -710,6 +710,7 @@ public class Machine implements Runnable{
 
 	/**
    * Méthode interpretant un message d'application TRANS
+   * @param msg Message à interpreter
    * @throws IOException Lance une exception en cas de problème
    */
 	public void trans_readMsg(Message msg) throws IOException{
