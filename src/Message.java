@@ -253,7 +253,7 @@ public class Message{
 
 			case WHOS:
 				this.mode = ProtocoleToken.UDP;
-				mess = String.format("%s", 
+				mess = String.format("%s %s", 
 					prefix, Tools.longToStr8b(idm));
 			break;
 
