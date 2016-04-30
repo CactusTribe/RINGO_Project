@@ -195,9 +195,6 @@ public class Machine implements Runnable{
 
 						Message msg = new Message(st);
 
-						if(msg.getTrans_token() == TransToken.SEN)
-							System.out.println(msg.getTrans_token()+" -> ("+msg.toString().getBytes().length+")"+msg.toString().substring(0, 51));
-
 						// Si on a pas déjà recu le message
 						if(received_msg.containsKey(msg.getIdm()) == false){
 
@@ -750,7 +747,7 @@ public class Machine implements Runnable{
 					//###############
 					
 					// Division du fichier en morceaux
-					System.out.println(String.format("\n\n > File size : %.2f Ko (%d bytes)\n > String size : %.2f Ko (%d bytes) (%d messages)\n", 
+					System.out.println(String.format("\n\n > File size : %.2f Ko (%d bytes)\n > String size : %.2f Ko (%d bytes) (%d messages)", 
 						(double)(file.length()) / 1000, file.length(), (double)(f_content.length()) / 1000, f_content.length(), nb_messages));
 
 					ArrayList<String> p_content = new ArrayList<String>();
@@ -760,30 +757,49 @@ public class Machine implements Runnable{
 						p_content.add(f_content.substring(i, Math.min(len, i + MAX_SIZE_FILE_CONTENT)));
 					}
 
-					int totalSend = 0;
-					// Envoi de toutes les parties
-					int no_mess = 0;
-			    for(String part : p_content) {
+					// Thread séparé pour l'envoi des messages
+					Thread t_send = new Thread(new Runnable(){
+						int totalSend = 0;
+						int no_mess = 0;
 
-						Message p_file = new Message();
-						p_file.setPrefix(ProtocoleToken.APPL);
-						p_file.setIdm();
-						p_file.setId_app(AppToken.TRANS);
-						p_file.setTrans_token(TransToken.SEN);
-						p_file.setId_trans(confirm.getId_trans());
-			      p_file.setNo_mess(no_mess);
-						p_file.setSize_content((short)part.length());
-						p_file.setFile_content(part);
+						public void run(){
+							try{
 
-						System.out.println("("+p_file.toString().getBytes().length+")"+p_file.toString().substring(0, 51));
+								// Envoi de toutes les parties
+						    for(String part : p_content) {
 
-						udp_sendMsg(p_file);
-						no_mess++;
-						totalSend += part.length();
-			    }
+									Message p_file = new Message();
+									p_file.setPrefix(ProtocoleToken.APPL);
+									p_file.setIdm();
+									p_file.setId_app(AppToken.TRANS);
+									p_file.setTrans_token(TransToken.SEN);
+									p_file.setId_trans(confirm.getId_trans());
+						      p_file.setNo_mess(no_mess);
+									p_file.setSize_content((short)part.length());
+									p_file.setFile_content(part);
 
-			    System.out.println(String.format(" > Send %.2f Ko (%d bytes)",
-						 (double)(totalSend) / 1000 ,totalSend));
+									//System.out.println("("+p_file.toString().getBytes().length+")"+p_file.toString().substring(0, 51));
+
+									udp_sendMsg(p_file);
+									no_mess++;
+									totalSend += part.length();
+
+									Thread.sleep(1); 
+								}
+
+							} catch (Exception e){
+								e.printStackTrace();
+
+							} finally {
+								System.out.println(String.format(" | -> Send %.2f Ko (%d bytes)\n",
+								 (double)(totalSend) / 1000 ,totalSend));
+							}
+
+						}
+					});
+
+					t_send.start();
+			    
 				}
 				else{
 					// Si la machine n'a pas le fichier elle envoi au prochain

@@ -199,20 +199,25 @@ public class Message{
 
 		switch(prefix){
 			case WELC:
+				this.mode = ProtocoleToken.TCP;
 				mess = String.format("%s %s %04d %s %04d",
 					prefix, ip, port, ip_diff, port_diff);
 			break;
 
 			case NEWC:
+				this.mode = ProtocoleToken.TCP;
 				mess = String.format("%s %s %04d",
 					prefix, ip, port);
 			break;
 
 			case ACKC:
+				this.mode = ProtocoleToken.TCP;
 				mess = String.format("%s",prefix);
 			break;
 
 			case APPL:
+				this.mode = ProtocoleToken.UDP;
+
 				if(this.id_app == AppToken.DIFF){
 					mess = String.format("%s %s %s %03d %s",
 						prefix, Tools.longToStr8b(idm), id_app, size_mess, message_app);				
@@ -236,45 +241,54 @@ public class Message{
 			break;
 
 			case TEST:
+				this.mode = ProtocoleToken.UDP;
 				mess = String.format("%s %s %s %04d",
 					prefix, Tools.longToStr8b(idm), ip_diff, port_diff);
 			break;
 
 			case DOWN:
+				this.mode = ProtocoleToken.UDP;
 				mess = String.format("%s", prefix);
 			break;
 
 			case WHOS:
+				this.mode = ProtocoleToken.UDP;
 				mess = String.format("%s", 
 					prefix, Tools.longToStr8b(idm));
 			break;
 
 			case MEMB:
+				this.mode = ProtocoleToken.UDP;
 				mess = String.format("%s %s %s %s %04d", 
 					prefix, Tools.longToStr8b(idm), id, ip, port);
 			break;
 
 			case GBYE:
+				this.mode = ProtocoleToken.UDP;
 				mess = String.format("%s %s %s %04d %s %04d", 
 					prefix, Tools.longToStr8b(idm), ip, port, ip_succ, port_succ);
 			break;
 
 			case EYBG:
+				this.mode = ProtocoleToken.UDP;
 				mess = String.format("%s %s", 
 					prefix, Tools.longToStr8b(idm));
 			break;
 
 			case DUPL:
+				this.mode = ProtocoleToken.TCP;
 				mess = String.format("%s %s %04d %s %04d", 
 					prefix,  ip, port, ip_diff, port_diff);
 			break;
 
 			case ACKD:
+				this.mode = ProtocoleToken.TCP;
 				mess = String.format("%s %04d", 
 					prefix, port);
 			break;
 
 			case NOTC:
+				this.mode = ProtocoleToken.TCP;
 				mess = String.format("%s", prefix);
 			break;
 		}
