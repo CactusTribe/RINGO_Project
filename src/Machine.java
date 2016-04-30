@@ -72,6 +72,7 @@ public class Machine implements Runnable{
 	private int nb_msg_received; // Nombre de messages recus
 	private String name_file_receveid = ""; // Nom du fichier recu
 	private String file_receveid = ""; // Fichier recu
+	private String name_waitingFile = ""; // Fichier attendu
 
 	/**
    * Constructeur
@@ -702,6 +703,8 @@ public class Machine implements Runnable{
 		msg.setSize_nom((short)file_name.length());
 		msg.setNom_fichier(file_name);
 
+		this.name_waitingFile = file_name;
+
 		try{
 			udp_sendMsg(msg);
 		}catch(Exception e){
@@ -747,7 +750,7 @@ public class Machine implements Runnable{
 					//###############
 					
 					// Division du fichier en morceaux
-					System.out.println(String.format("\n\n > File size : %.2f Ko (%d bytes)\n > String size : %.2f Ko (%d bytes) (%d messages)", 
+					System.out.println(String.format("\n\n > File size : %.1f Ko (%d bytes)\n > String size : %.1f Ko (%d bytes) (%d messages)", 
 						(double)(file.length()) / 1000, file.length(), (double)(f_content.length()) / 1000, f_content.length(), nb_messages));
 
 					ArrayList<String> p_content = new ArrayList<String>();
@@ -791,7 +794,7 @@ public class Machine implements Runnable{
 								e.printStackTrace();
 
 							} finally {
-								System.out.println(String.format(" | -> Send %.2f Ko (%d bytes)\n",
+								System.out.println(String.format(" | -> Send %.1f Ko (%d bytes)\n",
 								 (double)(totalSend) / 1000 ,totalSend));
 							}
 
@@ -802,7 +805,7 @@ public class Machine implements Runnable{
 			    
 				}
 				else{
-					// Si la machine n'a pas le fichier elle envoi au prochain
+					// Si la machine n'a pas le fichier elle retourne au prochain
 					udp_sendMsg(msg);
 				}
 
@@ -810,12 +813,19 @@ public class Machine implements Runnable{
 
 			case ROK:
 
-				// Préparation pour recevoir le fichier
-				this.cur_file_trans = msg.getId_trans();
-				this.nb_msg_total = msg.getNum_mess();
-				this.nb_msg_received = 0;
-			 	this.name_file_receveid = "cpy_"+msg.getNom_fichier();
-			 	this.file_receveid = "";
+				if(name_waitingFile.equals("") == false){
+					name_waitingFile = "";
+					// Préparation pour recevoir le fichier
+					this.cur_file_trans = msg.getId_trans();
+					this.nb_msg_total = msg.getNum_mess();
+					this.nb_msg_received = 0;
+				 	this.name_file_receveid = "cpy_"+msg.getNom_fichier();
+				 	this.file_receveid = "";
+				}
+				else{
+					// Si la machine n'est pas l'émeteuse de la requête
+					udp_sendMsg(msg);
+				}
 
 			break;
 
@@ -834,8 +844,8 @@ public class Machine implements Runnable{
 						byte[] dataByteArray = Base64.getDecoder().decode(file_receveid);
 						String file_receveid_str = new String(dataByteArray);
 
-						System.out.println(String.format(" > Write %.2f Ko (%d bytes) in %s",
-						 (double)(file_receveid_str.length()) / 1000 ,file_receveid_str.length() ,this.name_file_receveid));
+						System.out.println(String.format("\n > Write %.1f Ko (%d bytes) in %s",
+						 (double)(dataByteArray.length) / 1000 ,dataByteArray.length ,this.name_file_receveid));
 
 						Files.write(Paths.get(this.name_file_receveid), dataByteArray);
 					}
