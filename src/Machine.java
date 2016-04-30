@@ -1,6 +1,7 @@
 import java.util.*;
 import java.net.*;
 import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
@@ -16,7 +17,7 @@ import java.text.SimpleDateFormat;
 public class Machine implements Runnable{
 
 	public static final int MAX_SIZE_MSG = 512;
-	public static final int MAX_SIZE_FILE_CONTENT = 462;
+	public static final int MAX_SIZE_FILE_CONTENT = 463;
 
 	// Informations de connexion
 	private String ident;
@@ -70,7 +71,7 @@ public class Machine implements Runnable{
 	private int nb_msg_total; // Nombre de messages à recevoir
 	private int nb_msg_received; // Nombre de messages recus
 	private String name_file_receveid = ""; // Nom du fichier recu
-	private ArrayList<byte[]> file_receveid; // Fichier recu
+	private String file_receveid = ""; // Fichier recu
 
 	/**
    * Constructeur
@@ -194,19 +195,22 @@ public class Machine implements Runnable{
 
 						Message msg = new Message(st);
 
+						if(msg.getTrans_token() == TransToken.SEN)
+							System.out.println(msg.getTrans_token()+" -> ("+msg.toString().getBytes().length+")"+msg.toString().substring(0, 51));
+
 						// Si on a pas déjà recu le message
 						if(received_msg.containsKey(msg.getIdm()) == false){
-
-							// Interpretation du message
-							udp_readMessage(msg);
 
 							// Ajout dans les logs
 							toLogs(msg.toString(), ProtocoleToken.UDP, ProtocoleToken.RECEIVED, 
 								isa.getAddress().getHostAddress(), isa.getPort());
 
+							// Interpretation du message
+							udp_readMessage(msg);
+
 						}
 					}catch (MalformedMsgException e){
-						//System.out.println("udp_listening: malformed message");
+						System.out.println("udp_listening: malformed message");
 					}catch (SocketException e){
 						break;
 					}catch (Exception e){
@@ -724,7 +728,13 @@ public class Machine implements Runnable{
 				// Si le fichier existe
 				if(file.isFile()){
 
-					int nb_messages = (int)(file.length() / MAX_SIZE_FILE_CONTENT) + 1;
+					FileInputStream fis = new FileInputStream(file);
+					byte data[] = new byte[(int) file.length()];
+					fis.read(data);
+					fis.close();
+
+					String f_content = Base64.getEncoder().encodeToString(data);
+					int nb_messages = (int)(f_content.length() / MAX_SIZE_FILE_CONTENT) + 1;
 
 					Message confirm = new Message();
 					confirm.setPrefix(ProtocoleToken.APPL);
@@ -737,20 +747,23 @@ public class Machine implements Runnable{
 					confirm.setNum_mess(nb_messages);
 
 					udp_sendMsg(confirm);
-
+					//###############
+					
 					// Division du fichier en morceaux
-					byte[] content = Files.readAllBytes(Paths.get(file_name));
-					ArrayList<byte[]> p_content = new ArrayList<byte[]>();
-					int len = content.length;
+					System.out.println(String.format("\n\n > File size : %.2f Ko (%d bytes)\n > String size : %.2f Ko (%d bytes) (%d messages)\n", 
+						(double)(file.length()) / 1000, file.length(), (double)(f_content.length()) / 1000, f_content.length(), nb_messages));
+
+					ArrayList<String> p_content = new ArrayList<String>();
+					int len = (int)f_content.length();
 
 					for(int i=0; i < len; i += MAX_SIZE_FILE_CONTENT){
-						byte[] p = Arrays.copyOfRange(content, i, Math.min(len, i + MAX_SIZE_FILE_CONTENT));
-						p_content.add(p);
+						p_content.add(f_content.substring(i, Math.min(len, i + MAX_SIZE_FILE_CONTENT)));
 					}
-					
+
+					int totalSend = 0;
 					// Envoi de toutes les parties
 					int no_mess = 0;
-			    for(byte[] part : p_content) {
+			    for(String part : p_content) {
 
 						Message p_file = new Message();
 						p_file.setPrefix(ProtocoleToken.APPL);
@@ -759,13 +772,18 @@ public class Machine implements Runnable{
 						p_file.setTrans_token(TransToken.SEN);
 						p_file.setId_trans(confirm.getId_trans());
 			      p_file.setNo_mess(no_mess);
-						p_file.setSize_content((short)part.length);
+						p_file.setSize_content((short)part.length());
 						p_file.setFile_content(part);
+
+						System.out.println("("+p_file.toString().getBytes().length+")"+p_file.toString().substring(0, 51));
 
 						udp_sendMsg(p_file);
 						no_mess++;
+						totalSend += part.length();
 			    }
 
+			    System.out.println(String.format(" > Send %.2f Ko (%d bytes)",
+						 (double)(totalSend) / 1000 ,totalSend));
 				}
 				else{
 					// Si la machine n'a pas le fichier elle envoi au prochain
@@ -781,7 +799,7 @@ public class Machine implements Runnable{
 				this.nb_msg_total = msg.getNum_mess();
 				this.nb_msg_received = 0;
 			 	this.name_file_receveid = "cpy_"+msg.getNom_fichier();
-			 	this.file_receveid = new ArrayList<byte[]>();
+			 	this.file_receveid = "";
 
 			break;
 
@@ -790,25 +808,20 @@ public class Machine implements Runnable{
 				if(msg.getId_trans() == this.cur_file_trans){
 
 					if(msg.getNo_mess() == nb_msg_received){
-						file_receveid.add(msg.getFile_content());
+						file_receveid += msg.getFile_content();
 						this.nb_msg_received++;
 					}
 
 					// Une fois que toute les parties sont présentes, on écrit le fichier
 					if(this.nb_msg_received == this.nb_msg_total){
 
-						FileOutputStream out = new FileOutputStream(this.name_file_receveid);
-						ByteArrayOutputStream bos = new ByteArrayOutputStream();
+						byte[] dataByteArray = Base64.getDecoder().decode(file_receveid);
+						String file_receveid_str = new String(dataByteArray);
 
-						for(int i=0; i < file_receveid.size(); i++){
-							bos.write(file_receveid.get(i));
-						}
+						System.out.println(String.format(" > Write %.2f Ko (%d bytes) in %s",
+						 (double)(file_receveid_str.length()) / 1000 ,file_receveid_str.length() ,this.name_file_receveid));
 
-						byte[] file_array = bos.toByteArray();
-						out.write(file_array);
-
-						out.close();
-						bos.close();
+						Files.write(Paths.get(this.name_file_receveid), dataByteArray);
 					}
 				}
 				else{
@@ -881,9 +894,10 @@ public class Machine implements Runnable{
 		else if (direction == ProtocoleToken.SENT)
 			st_direct = "sent to";
 
+
 		logs.add(String.format(" > (%s) %s %d bytes %s %s:%04d : \n  | - [ %s ]\n  | ", 
 			str_cur_time, mode , msg.getBytes().length, st_direct, ip, port,
-			 ((msg.length() > 100) ? msg.substring(0,100)+".." : msg.substring(0,msg.length()-1))));
+			 ((msg.length() > 100) ? msg.substring(0,100)+".." : msg.substring(0,((mode == ProtocoleToken.UDP) ? msg.length() : msg.length()-1)))));
 
 	}
 

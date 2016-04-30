@@ -10,6 +10,7 @@ public class Message{
 
 	// Champs du message (Protocole)
 	private ProtocoleToken prefix = null;
+	private ProtocoleToken mode = null;
 	private String ip = "";
 	private String ip_succ = "";
 	private String ip_diff = "";
@@ -34,7 +35,7 @@ public class Message{
 	
 	private String nom_fichier = "";
 	private String message_app = "";
-	private byte[] file_content;
+	private String file_content = "";
 
 	/**
 	 * Constructeur par defaut
@@ -58,6 +59,7 @@ public class Message{
 
 			switch(prefix){
 				case WELC:
+					this.mode = ProtocoleToken.TCP;
 					this.ip = argv.get(1);
 					this.ip_diff = argv.get(3);
 					this.port = (short)Integer.parseInt(argv.get(2));
@@ -65,14 +67,17 @@ public class Message{
 				break;
 
 				case NEWC:
+					this.mode = ProtocoleToken.TCP;
 					this.ip = argv.get(1);
 					this.port = (short)Integer.parseInt(argv.get(2));
 				break;
 
 				case ACKC:
+					this.mode = ProtocoleToken.TCP;
 				break;
 
 				case APPL:
+					this.mode = ProtocoleToken.UDP;
 					this.idm = Integer.parseInt(argv.get(1));
 					this.id_app = AppToken.valueOf(argv.get(2).replace("#",""));
 
@@ -115,31 +120,33 @@ public class Message{
 						}
 						// TRANS Envoi
 						else if(this.trans_token == TransToken.SEN){
-
 							this.id_trans = Integer.parseInt(argv.get(4));
 							this.no_mess = Integer.parseInt(argv.get(5));
 							this.size_content = (short)Integer.parseInt(argv.get(6));
-							//this.file_content = mess.substring(49, mess.length()-1);
-							this.file_content = mess.substring(49, mess.length()-1).getBytes();
+							this.file_content = mess.substring(49, mess.length());
 
 						}
 					}
 				break;
 
 				case TEST:
+					this.mode = ProtocoleToken.UDP;
 					this.idm = Integer.parseInt(argv.get(1));
 					this.ip_diff = argv.get(2);
 					this.port_diff = (short)Integer.parseInt(argv.get(3));
 				break;
 
 				case DOWN:
+					this.mode = ProtocoleToken.UDP;
 				break;
 
 				case WHOS:
+					this.mode = ProtocoleToken.UDP;
 					this.idm = Integer.parseInt(argv.get(1));
 				break;
 
 				case MEMB:
+					this.mode = ProtocoleToken.UDP;
 					this.idm = Integer.parseInt(argv.get(1));
 					this.id = argv.get(2);
 					this.ip = argv.get(3);
@@ -147,6 +154,7 @@ public class Message{
 				break;
 
 				case GBYE:
+					this.mode = ProtocoleToken.UDP;
 					this.idm = Integer.parseInt(argv.get(1));
 					this.ip = argv.get(2);
 					this.port = (short)Integer.parseInt(argv.get(3));
@@ -155,10 +163,12 @@ public class Message{
 				break;
 
 				case EYBG:
+					this.mode = ProtocoleToken.UDP;
 					this.idm = Integer.parseInt(argv.get(1));
 				break;
 
 				case DUPL:
+					this.mode = ProtocoleToken.TCP;
 					this.ip = argv.get(1);
 					this.port = (short)Integer.parseInt(argv.get(2));
 					this.ip_diff = argv.get(3);
@@ -166,10 +176,12 @@ public class Message{
 				break;
 
 				case ACKD:
+					this.mode = ProtocoleToken.TCP;
 					this.port = (short)Integer.parseInt(argv.get(1));
 				break;
 
 				case NOTC:
+					this.mode = ProtocoleToken.TCP;
 				break;
 			}
 
@@ -187,87 +199,87 @@ public class Message{
 
 		switch(prefix){
 			case WELC:
-				mess = String.format("%s %s %04d %s %04d\n",
+				mess = String.format("%s %s %04d %s %04d",
 					prefix, ip, port, ip_diff, port_diff);
 			break;
 
 			case NEWC:
-				mess = String.format("%s %s %04d\n",
+				mess = String.format("%s %s %04d",
 					prefix, ip, port);
 			break;
 
 			case ACKC:
-				mess = String.format("%s\n",prefix);
+				mess = String.format("%s",prefix);
 			break;
 
 			case APPL:
 				if(this.id_app == AppToken.DIFF){
-					mess = String.format("%s %s %s %03d %s\n",
+					mess = String.format("%s %s %s %03d %s",
 						prefix, Tools.longToStr8b(idm), id_app, size_mess, message_app);				
 				}
 				else if(this.id_app == AppToken.TRANS){
 
 					if(this.trans_token == TransToken.REQ){
-						mess = String.format("%s %s %s %s %02d %s\n",
+						mess = String.format("%s %s %s %s %02d %s",
 							prefix, Tools.longToStr8b(idm), id_app, trans_token, size_nom, nom_fichier);	
 					}
 					else if(this.trans_token == TransToken.ROK){
-						mess = String.format("%s %s %s %s %s %02d %s %08d\n",
+						mess = String.format("%s %s %s %s %s %02d %s %08d",
 							prefix, Tools.longToStr8b(idm), id_app, trans_token, Tools.longToStr8b(id_trans), size_nom, nom_fichier, num_mess);
 					}
 					else if(this.trans_token == TransToken.SEN){
-						mess = String.format("%s %s %s %s %s %08d %03d %s\n",
-							prefix, Tools.longToStr8b(idm), id_app, trans_token, Tools.longToStr8b(id_trans), no_mess, size_content, new String(file_content));
+						mess = String.format("%s %s %s %s %s %08d %03d %s",
+							prefix, Tools.longToStr8b(idm), id_app, trans_token, Tools.longToStr8b(id_trans), no_mess, size_content, file_content);
 					}
 
 				}
 			break;
 
 			case TEST:
-				mess = String.format("%s %s %s %04d\n",
+				mess = String.format("%s %s %s %04d",
 					prefix, Tools.longToStr8b(idm), ip_diff, port_diff);
 			break;
 
 			case DOWN:
-				mess = String.format("%s\n", prefix);
+				mess = String.format("%s", prefix);
 			break;
 
 			case WHOS:
-				mess = String.format("%s %s\n", 
+				mess = String.format("%s", 
 					prefix, Tools.longToStr8b(idm));
 			break;
 
 			case MEMB:
-				mess = String.format("%s %s %s %s %04d\n", 
+				mess = String.format("%s %s %s %s %04d", 
 					prefix, Tools.longToStr8b(idm), id, ip, port);
 			break;
 
 			case GBYE:
-				mess = String.format("%s %s %s %04d %s %04d\n", 
+				mess = String.format("%s %s %s %04d %s %04d", 
 					prefix, Tools.longToStr8b(idm), ip, port, ip_succ, port_succ);
 			break;
 
 			case EYBG:
-				mess = String.format("%s %s\n", 
+				mess = String.format("%s %s", 
 					prefix, Tools.longToStr8b(idm));
 			break;
 
 			case DUPL:
-				mess = String.format("%s %s %04d %s %04d\n", 
+				mess = String.format("%s %s %04d %s %04d", 
 					prefix,  ip, port, ip_diff, port_diff);
 			break;
 
 			case ACKD:
-				mess = String.format("%s %04d\n", 
+				mess = String.format("%s %04d", 
 					prefix, port);
 			break;
 
 			case NOTC:
-				mess = String.format("%s\n", prefix);
+				mess = String.format("%s", prefix);
 			break;
 		}
 
-		return mess;
+		return mess+((this.mode == ProtocoleToken.TCP) ? "\n" : "");
 	}
 
 	/**
@@ -458,7 +470,7 @@ public class Message{
 	 * Modifie le contenu du fichier
 	 * @param content Nouveau contenu
 	 */
-	public void setFile_content(byte[] content){
+	public void setFile_content(String content){
 		this.file_content = content;
 	}
 
@@ -618,7 +630,7 @@ public class Message{
 	 * Retourne le file_content
 	 * @return file_content
 	 */
-	public byte[] getFile_content(){
+	public String getFile_content(){
 		return this.file_content;
 	}
 
