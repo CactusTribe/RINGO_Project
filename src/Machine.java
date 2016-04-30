@@ -819,7 +819,7 @@ public class Machine implements Runnable{
 					this.cur_file_trans = msg.getId_trans();
 					this.nb_msg_total = msg.getNum_mess();
 					this.nb_msg_received = 0;
-				 	this.name_file_receveid = "cpy_"+msg.getNom_fichier();
+				 	this.name_file_receveid = msg.getNom_fichier();
 				 	this.file_receveid = "";
 				}
 				else{
