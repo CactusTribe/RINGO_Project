@@ -923,7 +923,7 @@ public class Machine implements Runnable{
 
 		logs.add(String.format(" > (%s) %s %d bytes %s %s:%04d : \n  | - [ %s ]\n  | ", 
 			str_cur_time, mode , msg.getBytes().length, st_direct, ip, port,
-			 ((msg.length() > 100) ? msg.substring(0,100)+".." : msg.substring(0,((mode == ProtocoleToken.UDP) ? msg.length() : msg.length()-1)))));
+			 ((msg.length() > 100) ? msg.substring(0,100)+".." : msg.substring(0,((mode == ProtocoleToken.UDP || mode == ProtocoleToken.DIFF) ? msg.length() : msg.length()-1)))));
 
 	}
 

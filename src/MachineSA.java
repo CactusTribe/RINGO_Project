@@ -67,7 +67,7 @@ public class MachineSA{
    * Affiche une nouvelle ligne pour la prochaine commande
    */
   public static void display_prompt(){
-    System.out.print("[c]Connect [D]Duplication [d]Disconnect [l]Logs \n"
+    System.out.print("[c]Connect [d]Duplication [D]Disconnect [l]Logs \n"
     									+ "[la]ListApps [e]ExecApp [t]Test [w]Who [i]Info [q]Quit : ");
   }
   
@@ -105,15 +105,15 @@ public class MachineSA{
     		System.out.println("Usage: c <ip> <tcp_port> (Connect machine to another in TCP)");
 
     }
-    else if(argv.get(0).equals("D")){
+    else if(argv.get(0).equals("d")){
 
     	if(argv.size() > 2)
     		m.tcp_connectTo(argv.get(1), (short)Integer.parseInt(argv.get(2)), true);
     	else
-    		System.out.println("Usage: D <ip> <tcp_port> (Connect machine to duplicator in TCP)");
+    		System.out.println("Usage: d <ip> <tcp_port> (Connect machine to duplicator in TCP)");
 
     }
-    else if(argv.get(0).equals("d")){
+    else if(argv.get(0).equals("D")){
 
     	try{
     		System.out.println("");
