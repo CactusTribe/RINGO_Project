@@ -787,7 +787,7 @@ public class Machine implements Runnable{
 									no_mess++;
 									totalSend += part.length();
 
-									Thread.sleep(1); 
+									Thread.sleep(5); 
 								}
 
 							} catch (Exception e){
