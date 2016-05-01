@@ -73,6 +73,7 @@ public class Machine implements Runnable{
 	private String name_file_receveid = ""; // Nom du fichier recu
 	private String file_receveid = ""; // Fichier recu
 	private String name_waitingFile = ""; // Fichier attendu
+	private ProgressBar writting_progress;
 
 	/**
    * Constructeur
@@ -718,8 +719,8 @@ public class Machine implements Runnable{
    * @throws IOException Lance une exception en cas de problème
    */
 	public void trans_readMsg(Message msg) throws IOException{
-		switch(msg.getTrans_token()){
 
+		switch(msg.getTrans_token()){
 			case REQ:
 
 				String file_name = msg.getNom_fichier();
@@ -750,7 +751,7 @@ public class Machine implements Runnable{
 					//###############
 					
 					// Division du fichier en morceaux
-					System.out.println(String.format("\n\n > File size : %.1f Ko (%d bytes)\n > String size : %.1f Ko (%d bytes) (%d messages)", 
+					System.out.println(String.format("\n\n > File size : %.1f Ko (%d bytes)\n > String size : %.1f Ko (%d bytes) (%d messages)\n", 
 						(double)(file.length()) / 1000, file.length(), (double)(f_content.length()) / 1000, f_content.length(), nb_messages));
 
 					ArrayList<String> p_content = new ArrayList<String>();
@@ -768,6 +769,7 @@ public class Machine implements Runnable{
 						public void run(){
 							try{
 
+								ProgressBar sending_progress = new ProgressBar(f_content.length());
 								// Envoi de toutes les parties
 						    for(String part : p_content) {
 
@@ -786,15 +788,17 @@ public class Machine implements Runnable{
 									udp_sendMsg(p_file);
 									no_mess++;
 									totalSend += part.length();
+ 									
+									sending_progress.update(totalSend);
 
-									Thread.sleep(5); 
+									Thread.sleep(1); 
 								}
 
 							} catch (Exception e){
 								e.printStackTrace();
 
 							} finally {
-								System.out.println(String.format(" | -> Send %.1f Ko (%d bytes)\n",
+								System.out.println(String.format("\n | -> Send %.1f Ko (%d bytes)\n",
 								 (double)(totalSend) / 1000 ,totalSend));
 							}
 
@@ -821,6 +825,7 @@ public class Machine implements Runnable{
 					this.nb_msg_received = 0;
 				 	this.name_file_receveid = msg.getNom_fichier();
 				 	this.file_receveid = "";
+				 	this.writting_progress = new ProgressBar(nb_msg_total * 463);
 				}
 				else{
 					// Si la machine n'est pas l'émeteuse de la requête
@@ -835,6 +840,7 @@ public class Machine implements Runnable{
 
 					if(msg.getNo_mess() == nb_msg_received){
 						file_receveid += msg.getFile_content();
+						writting_progress.update(file_receveid.length());
 						this.nb_msg_received++;
 					}
 
