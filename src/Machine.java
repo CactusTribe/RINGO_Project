@@ -798,7 +798,7 @@ public class Machine implements Runnable{
 								e.printStackTrace();
 
 							} finally {
-								System.out.println(String.format("\n | -> Send %.1f Ko (%d bytes)\n",
+								System.out.println(String.format("\n | > Send %.1f Ko (%d bytes)",
 								 (double)(totalSend) / 1000 ,totalSend));
 							}
 
@@ -839,9 +839,13 @@ public class Machine implements Runnable{
 				if(msg.getId_trans() == this.cur_file_trans){
 
 					if(msg.getNo_mess() == nb_msg_received){
+
 						file_receveid += msg.getFile_content();
-						writting_progress.update(file_receveid.length());
 						this.nb_msg_received++;
+
+						if(this.udp_listenPort != this.udp_nextPort)
+							writting_progress.update(file_receveid.length());
+
 					}
 
 					// Une fois que toute les parties sont présentes, on écrit le fichier
@@ -850,7 +854,7 @@ public class Machine implements Runnable{
 						byte[] dataByteArray = Base64.getDecoder().decode(file_receveid);
 						String file_receveid_str = new String(dataByteArray);
 
-						System.out.println(String.format("\n > Write %.1f Ko (%d bytes) in %s",
+						System.out.println(String.format("\n | > Write %.1f Ko (%d bytes) in %s",
 						 (double)(dataByteArray.length) / 1000 ,dataByteArray.length ,this.name_file_receveid));
 
 						Files.write(Paths.get(this.name_file_receveid), dataByteArray);
