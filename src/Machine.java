@@ -791,7 +791,7 @@ public class Machine implements Runnable{
  									
 									sending_progress.update(totalSend);
 
-									Thread.sleep(1); 
+									Thread.sleep(3); 
 								}
 
 							} catch (Exception e){
