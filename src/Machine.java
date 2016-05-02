@@ -70,6 +70,7 @@ public class Machine implements Runnable{
 	private int cur_file_trans; // L'id de transaction de fichier courante
 	private int nb_msg_total; // Nombre de messages à recevoir
 	private int nb_msg_received; // Nombre de messages recus
+	private String files_directory = "files/"; // Répertoire des fichiers
 	private String name_file_receveid = ""; // Nom du fichier recu
 	private String file_receveid = ""; // Fichier recu
 	private String name_waitingFile = ""; // Fichier attendu
@@ -724,7 +725,7 @@ public class Machine implements Runnable{
 			case REQ:
 
 				String file_name = msg.getNom_fichier();
-				File file = new File(file_name);
+				File file = new File(files_directory + file_name);
 
 				// Si le fichier existe
 				if(file.isFile()){
@@ -850,14 +851,15 @@ public class Machine implements Runnable{
 
 					// Une fois que toute les parties sont présentes, on écrit le fichier
 					if(this.nb_msg_received == this.nb_msg_total){
+						writting_progress.update(file_receveid.length());
 
 						byte[] dataByteArray = Base64.getDecoder().decode(file_receveid);
 						String file_receveid_str = new String(dataByteArray);
 
 						System.out.println(String.format("\n | > Write %.1f Ko (%d bytes) in %s",
-						 (double)(dataByteArray.length) / 1000 ,dataByteArray.length ,this.name_file_receveid));
+						 (double)(dataByteArray.length) / 1000 ,dataByteArray.length , files_directory + this.name_file_receveid));
 
-						Files.write(Paths.get(this.name_file_receveid), dataByteArray);
+						Files.write(Paths.get(files_directory + this.name_file_receveid), dataByteArray);
 					}
 				}
 				else{
