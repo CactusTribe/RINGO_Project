@@ -51,6 +51,7 @@ public class MachineSA{
 			System.out.println(" -> New machine "+m.getIdent()+" run at "+ m.getIp() + " TCP("+m.getPortTCP()+") UDP(" + m.getPortUDP()+")\n");
 
 		}catch (Exception e){
+      e.printStackTrace();
 			System.out.println("Usage: Machine <ip_multdif> <tcp_port> <udp_port> <multdif_port>");
 		}
 
