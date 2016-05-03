@@ -112,9 +112,6 @@ public class Machine implements Runnable{
 		this.mso = new MulticastSocket(this.multdif_port);
 		this.mso.joinGroup(InetAddress.getByName(this.ip_multdif));
 
-		this.ip = InetAddress.getLocalHost().toString();
-
-		/*
 		// Recherche de l'ip 192.x.x.x (Nécessaire pour linux)
 		Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces();
 		while(en.hasMoreElements()){
@@ -124,14 +121,14 @@ public class Machine implements Runnable{
 	    while(ee.hasMoreElements()) {
         InetAddress ia = ee.nextElement();
 
-	     	if(ia instanceof Inet4Address){
-	     		this.ip = ia.getHostAddress();
-	     		break;
-       	}
+        if(ia.getHostAddress().matches("172..*")){
+        	this.ip = ia.getHostAddress();
+        	break;
+        }
 	    }
 	    if(!this.ip.equals(""))
 	    	break;
-		}*/
+		}
 
 		this.next_ip = ip;
 
