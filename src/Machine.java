@@ -120,6 +120,7 @@ public class Machine implements Runnable{
 
 	    while(ee.hasMoreElements()) {
         InetAddress ia = ee.nextElement();
+        System.out.println(ia.getHostAddress());
 
         if(ia.getHostAddress().matches("172..*")){
         	this.ip = ia.getHostAddress();
