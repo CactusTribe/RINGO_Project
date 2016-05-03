@@ -120,16 +120,15 @@ public class Machine implements Runnable{
 
 	    while(ee.hasMoreElements()) {
         InetAddress ia = ee.nextElement();
-        System.out.println(ia.getHostAddress());
-
-        if(ia.getHostAddress().matches("172.28.7.[0-9]*")){
+        
+        if(ia.getHostAddress().matches("172..*") || ia.getHostAddress().matches("192..*")){
         	this.ip = ia.getHostAddress();
         	break;
         }
 	    }
 	    if(!this.ip.equals(""))
 	    	break;
-		 }
+		}
 
 		this.next_ip = ip;
 
