@@ -120,11 +120,11 @@ public class Machine implements Runnable{
 
 	    while(ee.hasMoreElements()) {
         InetAddress ia = ee.nextElement();
-        
-        if(ia.getHostAddress().matches("172..*") || ia.getHostAddress().matches("192..*")){
-        	this.ip = ia.getHostAddress();
-        	break;
-        }
+
+	     	if(ia instanceof Inet4Address){
+	     		this.ip = ia.getHostAddress();
+	     		break;
+       	}
 	    }
 	    if(!this.ip.equals(""))
 	    	break;
