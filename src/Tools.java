@@ -1,3 +1,4 @@
+import java.net.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -64,6 +65,30 @@ public class Tools{
 	 */
 	public static String longToStr8b(long l){
 		return String.format("%08d", Math.abs(l % 100000000));
+	}
+
+	/**
+	 * Retourne l'adresse IP locale
+	 * @return L'adresse ip
+	 */
+	public static String getLocalIP() throws Exception{
+		String myIp = null;
+
+		Enumeration<NetworkInterface> listNi = NetworkInterface.getNetworkInterfaces();
+
+		while(listNi.hasMoreElements()){
+			NetworkInterface nic = listNi.nextElement();
+			Enumeration<InetAddress> listIa = nic.getInetAddresses();
+
+			while(listIa.hasMoreElements()){
+				InetAddress iac = listIa.nextElement();
+				if(iac instanceof Inet4Address && !iac.isLoopbackAddress()){
+					myIp = iac.getHostAddress();
+				}
+			}	
+		}
+
+		return myIp;
 	}
 
 }
