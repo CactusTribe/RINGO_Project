@@ -70,6 +70,7 @@ public class Tools{
 	/**
 	 * Retourne l'adresse IP locale
 	 * @return L'adresse ip
+	 * @throws Exception en cas de problème
 	 */
 	public static String getLocalIP() throws Exception{
 		String myIp = null;
