@@ -23,7 +23,7 @@ runb:
 	$(JVM) -classpath $(BIN_PATH) MachineSA 225.1.2.4 5905 6005 7000
 
 tar: clean
-	tar cf $(NAME_JAR).tar Makefile README.txt bin/ src/ javadoc/
+	tar cf $(NAME_JAR).tar Makefile bin/ files/ javadoc/ META-INF/ src/ Rapport.pdf
 
 doc:
 	javadoc -encoding utf8 -docencoding utf8 -charset utf8 -d javadoc -author $(SRC_PATH)*.java
